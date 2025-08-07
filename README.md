@@ -3,9 +3,9 @@
 A Python library to process WRF simulations and download ERA5 data.
 
 ## Installation
-
+You can install it using the following command after downloading it.
 ```bash
-pip install wrf_tools
+pip install WRF_tools
 ```
 
 ## Usage
