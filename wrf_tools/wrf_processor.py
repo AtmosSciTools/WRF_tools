@@ -297,6 +297,32 @@ if __name__ == "__main__":
     base_dir = '/Volumes/work/share_data/2025/WRF'
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'])
 
+    run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
+    #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
+
+    domain_center = {
+        'id': 'Bangkok',
+        'lat': 13.75,
+        'lon': 100.50
+    }
+
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (100, 100, 100),
+            'e_sn_ini' : (100, 100, 100) }
+
+    paths = {
+        'wpsdir': os.environ.get('WPS'),
+        'wrfdir': os.environ.get('WRF'),
+        'geogdir': os.environ.get('WPS_GEOG'),
+        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
+        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.inout")
+    }
+
+    base_dir = os.environ.get('SIMULATION')
+    run_dir = os.path.join(base_dir, domain_center['id'], 'test')
+    
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
     wrf_processor.run_wrf()
     
