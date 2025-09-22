@@ -15,6 +15,7 @@ setup(
         'xarray',
         'pandas',
         'cdsapi',
+        'netcdf4'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
