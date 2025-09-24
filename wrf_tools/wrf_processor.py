@@ -197,7 +197,8 @@ class WRFProcessor:
             namelist['num_land_cat'] = str(ds.LANDUSEF.shape[1])
             namelist['num_metgrid_soil_levels'] = str(ds.dims['num_st_layers'])
             return namelist
-        except:
+        except Exception as e:
+            print(e)
             print('Errors: No met_em files')
             return {}
             sys.exit()
