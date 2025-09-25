@@ -332,8 +332,8 @@ if __name__ == "__main__":
 
     domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
             'dx' : 18000, 'dy' : 18000, 
-            'e_we_ini' : (50, 50, 50),
-            'e_sn_ini' : (50, 50, 50) }
+            'e_we_ini' : (50, 52, 52),
+            'e_sn_ini' : (50, 52, 52) }
 
     paths = {
         'wpsdir': os.environ.get('WPS'),
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, domain_center['id'], 'test')
     
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, numprocess=8)
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
     wrf_processor.run_wrf()
     
     
