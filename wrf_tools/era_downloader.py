@@ -136,6 +136,11 @@ if __name__ == "__main__":
         'e_we_ini': (50, 50, 50)
     }
 
+    run_period = {
+        'start_date': "2024-01-01 00",
+        'end_date': "2024-01-03 00"
+    }
+
     domain_center = {
         'id': 'Tokyo',
         'lat': 35.75,

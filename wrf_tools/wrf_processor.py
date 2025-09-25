@@ -10,12 +10,13 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=8):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.paths = paths
         self.run_dir = run_dir
+        self.num_process = num_process
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -278,8 +279,9 @@ class WRFProcessor:
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
-        self.run_wrf_process('./real.exe')
-        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
+        subprocess.run(['qsub', '-q', 'edu-1', '-A', 'EDU1', './jobscript.sh'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # self.run_wrf_process('./real.exe')
+        # self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
 
 
 
@@ -321,6 +323,8 @@ if __name__ == "__main__":
         'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
     }
 
+    run_period = { 'start_date' : "2024-01-01 00", 'end_date' : "2024-01-02 12" }
+
     domain_center = {
         'id': 'Tokyo',
         'lat': 35.75,
@@ -343,7 +347,7 @@ if __name__ == "__main__":
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, domain_center['id'], 'test')
     
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, numprocess=8)
     wrf_processor.run_wrf()
     
     
