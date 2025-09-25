@@ -1,10 +1,11 @@
 # Global constants for file paths and base URL
 #LIST_ISD_HISTORY = 'station_info/list-isd-history_2024.csv'  # Path to the station metadata CSV file
+
 import os
 import sys
 
 LIST_ISD_HISTORY = os.path.join(os.path.dirname(__file__), "data", "ghcnh-station-list.csv")
-BASE_URL = 'https://www.ncei.noaa.gov/oa/global-historical-climatology-network/index.html#hourly/access/by-year/'
+BASE_URL = 'https://www.ncei.noaa.gov/oa/global-historical-climatology-network/hourly/access/by-year/'
 
 
 
@@ -22,7 +23,7 @@ required_libraries = {
 # Optional libraries (enhance functionality but not critical)
 optional_libraries = {
     "seaborn": "seaborn",       # For plotting heatmaps of data availability
-    "mpl_toolkits.basemap": "basemap"  # For plotting station locations on a map
+    "cartopy": "cartopy"  # For plotting station locations on a map
 }
 
 # Check for missing required libraries
@@ -57,11 +58,18 @@ except ImportError:
     print("[WARNING] seaborn is not installed. Availability heatmaps will be skipped.")
 
 try:
-    from mpl_toolkits.basemap import Basemap
-    basemap_available = True
+    import cartopy.crs as ccrs
+    cartopy_available = True
 except ImportError:
-    basemap_available = False
+    cartopy_available = False
     print("[WARNING] Basemap is not installed. Station location plotting will be skipped.")
+
+
+import pandas as pd
+import xarray as xr
+import time
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 # -----------------------------
 # NCEIGSDProcessor Class Definition
@@ -109,8 +117,8 @@ class NCEIGSDProcessor:
             pd.DataFrame: DataFrame containing station information within the area.
         """
         la_min, la_max, lo_min, lo_max = self.area
-        df = pd.read_csv(LIST_ISD_HISTORY, index_col=0, parse_dates=[10, 11])
-        condition = (df['LAT'].between(la_min, la_max)) & (df['LON'].between(lo_min, lo_max))
+        df = pd.read_csv(LIST_ISD_HISTORY)
+        condition = (df['LATITUDE'].between(la_min, la_max)) & (df['LONGITUDE'].between(lo_min, lo_max))
         self.stations_df = df[condition]
         return self.stations_df
 
@@ -129,11 +137,12 @@ class NCEIGSDProcessor:
         Returns:
             pd.DataFrame: Availability matrix showing the proportion of available data.
         """
+        
         try:
-            d = pd.read_csv(fil, index_col=1, parse_dates=True)
+            d = pd.read_csv(fil, index_col=2, parse_dates=True, sep="|")
 
             # Drop unnecessary columns
-            columns_to_drop = ['STATION', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME'] + \
+            columns_to_drop = ['STATION', 'LATITUDE', 'LONGITUDE', 'Elevation', 'NAME'] + \
                               [col for col in d.columns if 'ATTRI' in col]
             d = d.drop(columns=columns_to_drop, errors='ignore')
 
@@ -149,15 +158,18 @@ class NCEIGSDProcessor:
                 if col != 'FRSHTT':
                     d[col] = pd.to_numeric(d[col], errors='coerce').replace(missing_values.get(col, np.nan), np.nan)
 
+
             # Calculate availability proportion per variable
             total_days = 366 if pd.Timestamp(year=year, month=12, day=31).is_leap_year else 365
             availability_data = {
                 'Variable': d.columns,
-                year: [(d[d.index.year == year][var].notna().sum() / total_days) for var in d.columns]
+                year: [(d[d.index.year == year][var].notna().sum() / d[var].sum()) for var in d.columns]
             }
             availability_matrix = pd.DataFrame(availability_data).set_index('Variable')
 
             # Save processed data
+            ofile = os.path.splitext(ofile)[0] + ".csv"
+
             self.ensure_directory_exists(odir)
             output_file = os.path.join(odir, ofile if ofile else os.path.basename(fil))
             d.to_csv(output_file, float_format='%.2f')
@@ -181,19 +193,20 @@ class NCEIGSDProcessor:
         Returns:
             tuple: (List of download results, Availability matrix DataFrame)
         """
-        station_id = station_row['f']
-        station_start, station_end = pd.to_datetime(station_row['BEGIN']), pd.to_datetime(station_row['END'])
+        station_id = station_row['GHCN_ID']
+        # station_start, station_end = pd.to_datetime(station_row['BEGIN']), pd.to_datetime(station_row['END'])
+
         results = []
         station_availability = pd.DataFrame()
 
         for year in range(self.start_year, self.end_year + 1):
             # Skip years outside station operational range
-            if year < station_start.year or (station_end.year != 2021 and year > station_end.year):
-                results.append({'Station': station_id, 'Year': year, 'Status': 'Not Expected'})
-                continue
-
-            filename = f"{station_id}.csv"
-            url = f"{BASE_URL}{year}/{filename}"
+            # if year < station_start.year or (station_end.year != 2021 and year > station_end.year):
+            #     results.append({'Station': station_id, 'Year': year, 'Status': 'Not Expected'})
+            #     continue
+            
+            filename = f"GHCNh_{station_id}_{year}.psv"
+            url = f"{BASE_URL}{year}/psv/{filename}"
 
             try:
                 print(f"Downloading: {url}")
@@ -212,6 +225,7 @@ class NCEIGSDProcessor:
                         if not station_availability.empty else availability_matrix
 
                 results.append({'Station': station_id, 'Year': year, 'Status': 'Success'})
+                time.sleep(3)
 
             except Exception as e:
                 print(f"Error for station {station_id}, year {year}: {e}")
@@ -219,7 +233,7 @@ class NCEIGSDProcessor:
 
         station_availability.insert(0, 'Station', station_id)
         return results, station_availability
-    
+
     def download_data(self):
         """
         Main workflow: load station data, download/process data, and save results.
@@ -236,8 +250,8 @@ class NCEIGSDProcessor:
         all_availability_matrices = []
 
         # Process each station
-        for _, station in self.stations_df.iterrows():
-            print(f"\n--- Processing station: {station['f']} ---")
+        for id, station in self.stations_df.iterrows():
+            print(f"\n--- Processing station: {station['GHCN_ID']} ---")
             station_results, availability_matrix = self.download_and_process_data(station)
             all_results.extend(station_results)
 
@@ -265,45 +279,57 @@ class NCEIGSDProcessor:
         - Failed downloads (red)
         - Not expected downloads (gray)
         """
-        if not basemap_available:
+        if not cartopy_available:
             print("[INFO] Basemap is not available. Skipping station location plotting.")
             return
 
         if self.stations_df is None or self.results_df is None:
             print("Stations and results dataframes are required. Run the process first.")
-            return
+            # return
+            summary_dir = os.path.join(self.output_dir, "summaries")
+            self.stations_df = pd.read_csv(os.path.join(summary_dir, "stations_summary.csv"))
+            self.results_df = pd.read_csv(os.path.join(summary_dir, "download_results.csv"))
+            self.combined_availability_df = pd.read_csv(os.path.join(summary_dir, "availability_summary.csv"))
 
         # Categorize stations based on download results
         success_stations = self.results_df[self.results_df['Status'] == 'Success']['Station'].unique()
         failed_stations = self.results_df[self.results_df['Status'] == 'Failed']['Station'].unique()
         not_expected_stations = self.results_df[self.results_df['Status'] == 'Not Expected']['Station'].unique()
 
-        success_df = self.stations_df[self.stations_df['f'].isin(success_stations)]
-        failed_df = self.stations_df[self.stations_df['f'].isin(failed_stations)]
-        not_expected_df = self.stations_df[self.stations_df['f'].isin(not_expected_stations)]
+        success_df = self.stations_df[self.stations_df['GHCN_ID'].isin(success_stations)]
+        failed_df = self.stations_df[self.stations_df['GHCN_ID'].isin(failed_stations)]
+        not_expected_df = self.stations_df[self.stations_df['GHCN_ID'].isin(not_expected_stations)]
 
         # Setup Basemap
         la_min, la_max, lo_min, lo_max = self.area
-        fig, ax = plt.subplots(figsize=(14, 10))
-        m = Basemap(
-            projection='merc',
-            llcrnrlat=la_min - 1, urcrnrlat=la_max + 1,
-            llcrnrlon=lo_min - 1, urcrnrlon=lo_max + 1,
-            resolution='i', ax=ax
+        # Define extent
+        extent = [lo_min - 1, lo_max + 1, la_min - 1, la_max + 1]
+
+        fig, ax = plt.subplots(
+            figsize=(10, 8),
+            subplot_kw={"projection": ccrs.Mercator()}
         )
 
+        # Set map extent
+        ax.set_extent(extent, crs=ccrs.PlateCarree())
+
         # Draw map features
-        m.drawcoastlines()
-        m.drawcountries()
-        m.drawstates()
-        m.fillcontinents(color='lightgray', lake_color='aqua')
-        m.drawmapboundary(fill_color='aqua')
+        ax.add_feature(cfeature.COASTLINE, linewidth=0.8)
+        ax.add_feature(cfeature.BORDERS, linewidth=0.8)
+        ax.add_feature(cfeature.STATES.with_scale('50m'), linewidth=0.5)  # US states, if needed
+        ax.add_feature(cfeature.LAND, facecolor="lightgray")
+        ax.add_feature(cfeature.OCEAN, facecolor="aqua")
+        ax.add_feature(cfeature.LAKES, facecolor="aqua")
 
         # Plot station categories
         def plot_stations(df, color, label):
             if not df.empty:
-                x, y = m(df['LON'].values, df['LAT'].values)
-                m.scatter(x, y, s=70, c=color, marker='o', edgecolors='k', label=label, alpha=0.8)
+                ax.scatter(
+                    df["LONGITUDE"].values, df["LATITUDE"].values,
+                    s=70, c=color, marker="o", edgecolors="k",
+                    label=label, alpha=0.8,
+                    transform=ccrs.PlateCarree()  # <-- required for lon/lat
+                )
 
         plot_stations(success_df, 'green', 'Success')
         plot_stations(failed_df, 'red', 'Failed')
@@ -356,14 +382,33 @@ class NCEIGSDProcessor:
 # Example Usage
 # -----------------------------
 if __name__ == "__main__":
+
+    # %%
+
+    # File paths
+    domain_id = 'Bangkok'
+    geo_em_d3 = f'../../simulation/{domain_id}/test/geo_em.d03.nc'
+
+    ds = xr.open_dataset(geo_em_d3)
+    min_lat = ds['XLAT_C'].values[0][0, 0]
+    max_lat = ds['XLAT_C'].values[0][-1, 0]
+    min_lon = ds['XLONG_C'].values[0][0, 0]
+    max_lon = ds['XLONG_C'].values[0][0, -1]
+    print([min_lat, max_lat, min_lon, max_lon])
+
+    # %%
+
+    dataset_type = {'GHCNh', 'psv'}
+    dataset = 'GHCNh'
+    area = [min_lat, max_lat, min_lon, max_lon]
     processor = NCEIGSDProcessor(
-        start_year=2010,
-        end_year=2012,
-        area=[18, 20, 105, 107],
-        output_dir="output/test_output"
+        start_year=2025,
+        end_year=2025,
+        area=area,
+        output_dir=f"../../data/point_data/{dataset}"
     )
 
-    processor.download_data()                    # Run data download and processing
+    # processor.download_data()                    # Run data download and processing
     processor.plot_station_locations() # Plot station locations with categories
     processor.plot_availability_heatmaps()  # Plot heatmaps (if seaborn is available)
     
