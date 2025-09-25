@@ -318,7 +318,26 @@ if __name__ == "__main__":
         'geogdir': os.environ.get('WPS_GEOG'),
         'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
         'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
-        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.inout")
+        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
+    }
+
+    domain_center = {
+        'id': 'Tokyo',
+        'lat': 35.75,
+        'lon': 139.75    }
+
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (50, 50, 50),
+            'e_sn_ini' : (50, 50, 50) }
+
+    paths = {
+        'wpsdir': os.environ.get('WPS'),
+        'wrfdir': os.environ.get('WRF'),
+        'geogdir': os.environ.get('WPS_GEOG'),
+        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
+        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
     }
 
     base_dir = os.environ.get('SIMULATION')
