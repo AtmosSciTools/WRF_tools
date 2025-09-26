@@ -142,7 +142,7 @@ class NCEIGSDProcessor:
             d = pd.read_csv(fil, index_col=2, parse_dates=True, sep="|")
 
             # Drop unnecessary columns
-            columns_to_drop = ['STATION', 'LATITUDE', 'LONGITUDE', 'Elevation', 'NAME'] + \
+            columns_to_drop = ['STATION', 'LATITUDE', 'LONGITUDE', 'Elevation', 'Station_name'] + \
                               [col for col in d.columns if 'ATTRI' in col]
             d = d.drop(columns=columns_to_drop, errors='ignore')
 
@@ -163,7 +163,7 @@ class NCEIGSDProcessor:
             total_days = 366 if pd.Timestamp(year=year, month=12, day=31).is_leap_year else 365
             availability_data = {
                 'Variable': d.columns,
-                year: [(d[d.index.year == year][var].notna().sum() / d[var].sum()) for var in d.columns]
+                year: [(d[d.index.year == year][var].count() / len(d[d.index.year == year][var])) for var in d.columns]
             }
             availability_matrix = pd.DataFrame(availability_data).set_index('Variable')
 
@@ -206,18 +206,27 @@ class NCEIGSDProcessor:
             #     continue
             
             filename = f"GHCNh_{station_id}_{year}.psv"
+            # output filename to store as csv file
+            ofile = os.path.splitext(filename)[0] + ".csv"
+            #URL to access and download
             url = f"{BASE_URL}{year}/psv/{filename}"
 
             try:
-                print(f"Downloading: {url}")
-                downloaded_file = wget.download(url, out=self.output_dir)
-                print("\nDownload completed.")
+                downloaded_dir = os.path.join(self.output_dir, 'download')
+                self.ensure_directory_exists(downloaded_dir)
+                downloaded_file = os.path.join(downloaded_dir, filename)
+                if os.path.exists(downloaded_file):
+                    print(f"File {filename} is already exist")
+                else:
+                    print(f"Downloading: {url}")
+                    downloaded_file = wget.download(url, out=downloaded_dir)
+                    print("\nDownload completed.")
 
                 year_output_dir = os.path.join(self.output_dir, str(year))
                 self.ensure_directory_exists(year_output_dir)
 
                 # Process the downloaded file
-                availability_matrix = self.process_data(downloaded_file, year_output_dir, year, station_id, filename, rm=True)
+                availability_matrix = self.process_data(downloaded_file, year_output_dir, year, station_id, ofile, rm=False)
 
                 # Append availability data
                 if not availability_matrix.empty:
@@ -341,6 +350,7 @@ class NCEIGSDProcessor:
         self.ensure_directory_exists(summary_dir)
         map_path = os.path.join(summary_dir, f"station_location_map.png")
         plt.savefig(map_path)
+        print(f"Saved : {map_path}")
         plt.show()
 
     def plot_availability_heatmaps(self):
@@ -408,7 +418,7 @@ if __name__ == "__main__":
         output_dir=f"../../data/point_data/{dataset}"
     )
 
-    # processor.download_data()                    # Run data download and processing
+    processor.download_data()                    # Run data download and processing
     processor.plot_station_locations() # Plot station locations with categories
     processor.plot_availability_heatmaps()  # Plot heatmaps (if seaborn is available)
     
