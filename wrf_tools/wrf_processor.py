@@ -340,8 +340,8 @@ if __name__ == "__main__":
 
     domain = { 'max_dom': 2, 'parent_grid_ratio' : (1,3), 
             'dx' : 18000, 'dy' : 18000, 
-            'e_we_ini' : (11, 10),
-            'e_sn_ini' : (9, 10) }
+            'e_we_ini' : (30, 31),
+            'e_sn_ini' : (30, 31) }
     
     paths = {
         'wpsdir': os.environ.get('WPS'),
