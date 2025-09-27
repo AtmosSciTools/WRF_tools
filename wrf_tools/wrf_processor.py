@@ -314,14 +314,7 @@ if __name__ == "__main__":
             'e_we_ini' : (100, 100, 100),
             'e_sn_ini' : (100, 100, 100) }
 
-    paths = {
-        'wpsdir': os.environ.get('WPS'),
-        'wrfdir': os.environ.get('WRF'),
-        'geogdir': os.environ.get('WPS_GEOG'),
-        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
-        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
-        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
-    }
+
 
     run_period = { 'start_date' : "2024-01-01 00", 'end_date' : "2024-01-02 12" }
 
@@ -335,15 +328,31 @@ if __name__ == "__main__":
             'e_we_ini' : (50, 52, 52),
             'e_sn_ini' : (50, 52, 52) }
 
+
+    run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-03 00" }
+    #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
+
+    domain_center = {
+        'id': 'Example',
+        'lat': 13.75,
+        'lon': 100.50
+    }
+
+    domain = { 'max_dom': 2, 'parent_grid_ratio' : (1,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (11, 10),
+            'e_sn_ini' : (9, 10) }
+    
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
-        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
+        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+"Bangkok"+'/'), #domain_center['id']
         'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
         'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
     }
 
+    
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, domain_center['id'], 'test')
     
