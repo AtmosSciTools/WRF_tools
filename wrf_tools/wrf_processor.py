@@ -279,7 +279,7 @@ class WRFProcessor:
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
-        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
+        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=24)
 
 
 

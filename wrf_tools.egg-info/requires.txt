@@ -2,3 +2,4 @@ numpy
 xarray
 pandas
 cdsapi
+netcdf4
