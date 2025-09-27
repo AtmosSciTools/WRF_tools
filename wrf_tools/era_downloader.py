@@ -136,6 +136,54 @@ if __name__ == "__main__":
         'e_we_ini': (50, 50, 50)
     }
 
-    download_dir = f"/Volumes/work/WRF_program/era5/{domain_center['id']}/"
+    run_period = {
+        'start_date': "2024-01-01 00",
+        'end_date': "2024-01-03 00"
+    }
+
+    domain_center = {
+        'id': 'Tokyo',
+        'lat': 35.75,
+        'lon': 139.75    }
+
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (50, 50, 50),
+            'e_sn_ini' : (50, 50, 50) }
+
+    paths = {
+        'wpsdir': os.environ.get('WPS'),
+        'wrfdir': os.environ.get('WRF'),
+        'geogdir': os.environ.get('WPS_GEOG'),
+        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
+        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
+    }
+
+
+    run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
+    #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
+
+    domain_center = {
+        'id': 'Bangkok',
+        'lat': 13.75,
+        'lon': 100.50
+    }
+
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (100, 100, 100),
+            'e_sn_ini' : (100, 100, 100) }
+
+    paths = {
+        'wpsdir': os.environ.get('WPS'),
+        'wrfdir': os.environ.get('WRF'),
+        'geogdir': os.environ.get('WPS_GEOG'),
+        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
+        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
+    }
+
+    download_dir = os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/')
     downloader = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
     downloader.download_data()
