@@ -1,3 +1,6 @@
 .ipynb_checkpoints/
 wrf_tools/.ipynb_checkpoints/
+wrf_tool.egg-info/
+confirm.ipynb
 sample_data/
+build/
