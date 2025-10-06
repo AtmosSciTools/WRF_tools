@@ -72,9 +72,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 # -----------------------------
-# NCEIGSDProcessor Class Definition
+# GHCNhProcessor Class Definition
 # -----------------------------
-class NCEIGSDProcessor:
+class GHCNhProcessor:
     """
     A class for downloading, processing, and analyzing the Global Summary of the Day (GSD) data
     from the National Centers for Environmental Information (NCEI) - NOAA.
@@ -422,7 +422,7 @@ if __name__ == "__main__":
     dataset_type = {'GHCNh', 'psv'}
     dataset = 'GHCNh'
     area = [min_lat, max_lat, min_lon, max_lon]
-    processor = NCEIGSDProcessor(
+    processor = GHCNhProcessor(
         start_year=2025,
         end_year=2025,
         area=area,
