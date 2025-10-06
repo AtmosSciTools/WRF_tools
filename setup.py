@@ -15,8 +15,9 @@ setup(
         'xarray',
         'pandas',
         'cdsapi',
-        'netcdf4'
-        'cartopy'
+        'netcdf4',
+        'cartopy',
+        'matplotlib'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
