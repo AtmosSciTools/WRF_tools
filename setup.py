@@ -16,6 +16,7 @@ setup(
         'pandas',
         'cdsapi',
         'netcdf4'
+        'cartopy'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
