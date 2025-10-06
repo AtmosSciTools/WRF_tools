@@ -165,7 +165,7 @@ class NCEIGSDProcessor:
 
             # Create a full time range to fill missing values (example with 1-hour frequency)
             start_date, end_date =  pd.Timestamp(year, 1, 1),  pd.Timestamp(year+1, 1, 1)
-            full_index = pd.date_range(start=start_date, end=end_date, freq='30min')
+            full_index = pd.date_range(start=start_date, end=end_date, freq='1h')[:-1]
 
             # Use reindex to add missing times, values automatically become NaN
             d = d.reindex(full_index) 
