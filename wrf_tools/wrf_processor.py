@@ -248,9 +248,9 @@ class WRFProcessor:
             met_em_files = sorted(glob.glob(os.path.join(self.run_dir, 'met_em*.nc')))
             if len(met_em_files) == 0: sys.exit()
             ds = xr.open_dataset(met_em_files[0])
-            namelist['num_metgrid_levels'] = str(ds.dims['num_metgrid_levels'])
+            namelist['num_metgrid_levels'] = str(ds.sizes['num_metgrid_levels'])
             namelist['num_land_cat'] = str(ds.LANDUSEF.shape[1])
-            namelist['num_metgrid_soil_levels'] = str(ds.dims['num_st_layers'])
+            namelist['num_metgrid_soil_levels'] = str(ds.sizes['num_st_layers'])
             return namelist
         except Exception as e:
             print(e)
@@ -327,15 +327,19 @@ class WRFProcessor:
         
         self.run_ungrib_era5(date_range)
         
-        self.run_wrf_process('./metgrid.exe')
+        # self.run_wrf_process('./metgrid.exe')
         
         self.update_namelist_time_domain_from_wps()
         self.adjust_domain_options()
         
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
-        
-        subprocess.run(['qsub', '-q', 'gpu', '-A', 'AICAST', './jobscript.sh'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        jobscript_file = os.path.join(os.environ.get('WRF_TOOLS'), 'jobscripts', "jobscript.sh")
+        shutil.copy2(jobscript_file, os.path.join(self.run_dir, f'jobscript.sh'))
+        subprocess.run(['qsub', '-q', 'gpu', '-A', 'AICAST', './jobscript.sh'], 
+                       cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, 
+                       stderr=subprocess.DEVNULL)
         # self.run_wrf_process('./real.exe')
         # self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
 
