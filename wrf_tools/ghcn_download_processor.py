@@ -72,9 +72,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 # -----------------------------
-# NCEIGSDProcessor Class Definition
+# GHCNhProcessor Class Definition
 # -----------------------------
-class NCEIGSDProcessor:
+class GHCNhProcessor:
     """
     A class for downloading, processing, and analyzing the Global Summary of the Day (GSD) data
     from the National Centers for Environmental Information (NCEI) - NOAA.
@@ -158,6 +158,17 @@ class NCEIGSDProcessor:
                 if col != 'FRSHTT':
                     d[col] = pd.to_numeric(d[col], errors='coerce').replace(missing_values.get(col, np.nan), np.nan)
 
+            # Insert time if a date is not found
+
+            # Convert index to datetime type
+            d.index = pd.to_datetime(d.index)
+
+            # Create a full time range to fill missing values (example with 1-hour frequency)
+            start_date, end_date =  pd.Timestamp(year, 1, 1),  pd.Timestamp(year+1, 1, 1)
+            full_index = pd.date_range(start=start_date, end=end_date, freq='1h')[:-1]
+
+            # Use reindex to add missing times, values automatically become NaN
+            d = d.reindex(full_index) 
 
             # Calculate availability proportion per variable
             total_days = 366 if pd.Timestamp(year=year, month=12, day=31).is_leap_year else 365
@@ -396,8 +407,8 @@ if __name__ == "__main__":
     # %%
 
     # File paths
-    domain_id = 'Bangkok'
-    geo_em_d3 = f'../../simulation/{domain_id}/test/geo_em.d03.nc'
+    domain_id = 'Example'
+    geo_em_d3 = f'../sample_data/simulation/wrf_output/{domain_id}/geo_em.d02.nc'
 
     ds = xr.open_dataset(geo_em_d3)
     min_lat = ds['XLAT_C'].values[0][0, 0]
@@ -411,11 +422,11 @@ if __name__ == "__main__":
     dataset_type = {'GHCNh', 'psv'}
     dataset = 'GHCNh'
     area = [min_lat, max_lat, min_lon, max_lon]
-    processor = NCEIGSDProcessor(
+    processor = GHCNhProcessor(
         start_year=2025,
         end_year=2025,
         area=area,
-        output_dir=f"../../data/point_data/{dataset}"
+        output_dir=f"../sample_data/point_data/{dataset}"
     )
 
     processor.download_data()                    # Run data download and processing
