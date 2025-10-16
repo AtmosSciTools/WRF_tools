@@ -188,6 +188,61 @@ class WRFProcessor:
         
         open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(win))
 
+def adjust_domain_options(self):
+    max_dom = self.domain['max_dom']
+    namelist_path = os.path.join(self.run_dir, 'namelist.input')
+    lines = open(namelist_path, 'r').readlines()
+
+    def adjust_values(line, max_dom):
+        # Extract the values after the '=' sign
+        match = re.match(r'(\s*\w+\s*=\s*)(.*)', line)
+        if not match:
+            return line  # Return the line as is if no match
+
+        prefix, values = match.groups()
+        values = values.strip().rstrip(',')
+        value_list = [v.strip() for v in values.split(',')]
+
+        # If there's only one value, keep it as is
+        if len(value_list) == 1:
+            return line
+
+        # Adjust the number of values to match max_dom
+        adjusted_values = (value_list[:max_dom] +
+                           ['-1'] * (max_dom - len(value_list)))
+        adjusted_values = adjusted_values[:max_dom]  # Truncate if too many
+
+        # Reconstruct the line
+        adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
+        return adjusted_line
+
+    in_physics = False
+    in_dynamics = False
+    updated_lines = []
+
+    for line in lines:
+        stripped_line = line.strip()
+
+        # Check if we are in the &physics or &dynamics section
+        if stripped_line.startswith('&physics'):
+            in_physics = True
+        elif stripped_line.startswith('&dynamics'):
+            in_dynamics = True
+        elif stripped_line.startswith('/'):
+            in_physics = False
+            in_dynamics = False
+
+        # Adjust lines in the &physics or &dynamics section
+        if in_physics or in_dynamics:
+            if '=' in line:
+                line = adjust_values(line, max_dom)
+
+        updated_lines.append(line)
+
+    # Write the updated lines back to the file
+    open(namelist_path, 'w').write(''.join(updated_lines))
+
+
     def get_met_em_info(self):
         try:
             namelist = {}
