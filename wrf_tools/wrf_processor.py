@@ -10,7 +10,7 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=8):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
@@ -335,7 +335,7 @@ class WRFProcessor:
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
-        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
+        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
 
 
 
@@ -354,12 +354,24 @@ if __name__ == "__main__":
     base_dir = '/Volumes/work/share_data/2025/WRF'
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'])
 
+    run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
+
+    domain_center = {
+        'id': 'Bangkok',
+        'lat': 13.75,
+        'lon': 100.50
+    }
+
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+            'dx' : 18000, 'dy' : 18000, 
+            'e_we_ini' : (100, 100, 100),
+            'e_sn_ini' : (100, 100, 100) }
     
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
-        'renaldir': os.path.join(os.environ.get('RENAL'), "era5/"+domain_center['id']+'/'), 
+        'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
         'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
         'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
     }
@@ -367,7 +379,7 @@ if __name__ == "__main__":
     
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
     wrf_processor.run_wrf()
     
     
