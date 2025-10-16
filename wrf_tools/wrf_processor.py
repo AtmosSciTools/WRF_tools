@@ -207,9 +207,10 @@ class WRFProcessor:
                 return line
 
             # Adjust the number of values to match max_dom
-            adjusted_values = (value_list[:max_dom] +
-                            ['-1'] * (max_dom - len(value_list)))
-            adjusted_values = adjusted_values[:max_dom]  # Truncate if too many
+            while len(value_list) < max_dom:
+                value_list.append(value_list[-1])  # Repeat the last value
+
+            adjusted_values = value_list[:max_dom]  # Truncate if too many
 
             # Reconstruct the line
             adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
@@ -316,11 +317,15 @@ class WRFProcessor:
 
         self.modify_namelist(self.paths['namelist_wps'], namelist_wps_out, {}) 
         self.modify_namelist(self.paths['namelist_input'], namelist_input_out, {}) 
-        
+
         replacements = self.generate_namelist_parameters()
         replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
         self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements) 
+
+        self.update_namelist_time_domain_from_wps()
+        self.adjust_domain_options()
+        
         self.run_wrf_process('./geogrid.exe')
         
         self.run_ungrib_era5(date_range)
@@ -328,11 +333,12 @@ class WRFProcessor:
         self.run_wrf_process('./metgrid.exe')
         
         self.update_namelist_time_domain_from_wps()
+        self.adjust_domain_options()
         
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
-        subprocess.run(['qsub', '-q', 'edu-1', '-A', 'EDU1', './jobscript.sh'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['qsub', '-q', 'gpu', '-A', 'AICAST', './jobscript.sh'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # self.run_wrf_process('./real.exe')
         # self.run_wrf_process('./wrf.exe', mpi=True, num_cores=4)
 
@@ -369,45 +375,45 @@ if __name__ == "__main__":
 
 
 
-    run_period = { 'start_date' : "2024-01-01 00", 'end_date' : "2024-01-02 12" }
+    # run_period = { 'start_date' : "2024-01-01 00", 'end_date' : "2024-01-02 12" }
 
-    domain_center = {
-        'id': 'Tokyo',
-        'lat': 35.75,
-        'lon': 139.75    }
+    # domain_center = {
+    #     'id': 'Tokyo',
+    #     'lat': 35.75,
+    #     'lon': 139.75    }
 
-    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
-            'dx' : 18000, 'dy' : 18000, 
-            'e_we_ini' : (50, 52, 52),
-            'e_sn_ini' : (50, 52, 52) }
+    # domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+    #         'dx' : 18000, 'dy' : 18000, 
+    #         'e_we_ini' : (50, 52, 52),
+    #         'e_sn_ini' : (50, 52, 52) }
 
 
-    run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-03 00" }
-    #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
+    # run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-03 00" }
+    # #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
 
-    domain_center = {
-        'id': 'Example',
-        'lat': 13.75,
-        'lon': 100.50
-    }
+    # domain_center = {
+    #     'id': 'Example',
+    #     'lat': 13.75,
+    #     'lon': 100.50
+    # }
 
-    domain = { 'max_dom': 2, 'parent_grid_ratio' : (1,3), 
-            'dx' : 18000, 'dy' : 18000, 
-            'e_we_ini' : (30, 31),
-            'e_sn_ini' : (30, 31) }
+    # domain = { 'max_dom': 2, 'parent_grid_ratio' : (1,3), 
+    #         'dx' : 18000, 'dy' : 18000, 
+    #         'e_we_ini' : (30, 31),
+    #         'e_sn_ini' : (30, 31) }
     
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
         'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+"Bangkok"+'/'), #domain_center['id']
-        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
-        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
+        'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
     }
 
     
     base_dir = os.environ.get('SIMULATION')
-    run_dir = os.path.join(base_dir, domain_center['id'], 'test')
+    run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
     
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
     wrf_processor.run_wrf()
