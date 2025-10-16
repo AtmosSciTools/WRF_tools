@@ -6,3 +6,4 @@ sample_data/
 data/
 build/
 jobscripts/
+.copilotignore
