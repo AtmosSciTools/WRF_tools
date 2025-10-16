@@ -10,12 +10,13 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=8):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.paths = paths
         self.run_dir = run_dir
+        self.num_process = num_process
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -206,9 +207,10 @@ class WRFProcessor:
                 return line
 
             # Adjust the number of values to match max_dom
-            adjusted_values = (value_list[:max_dom] +
-                            ['-1'] * (max_dom - len(value_list)))
-            adjusted_values = adjusted_values[:max_dom]  # Truncate if too many
+            while len(value_list) < max_dom:
+                value_list.append(value_list[-1])  # Repeat the last value
+
+            adjusted_values = value_list[:max_dom]  # Truncate if too many
 
             # Reconstruct the line
             adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
@@ -246,9 +248,9 @@ class WRFProcessor:
             met_em_files = sorted(glob.glob(os.path.join(self.run_dir, 'met_em*.nc')))
             if len(met_em_files) == 0: sys.exit()
             ds = xr.open_dataset(met_em_files[0])
-            namelist['num_metgrid_levels'] = str(ds.dims['num_metgrid_levels'])
+            namelist['num_metgrid_levels'] = str(ds.sizes['num_metgrid_levels'])
             namelist['num_land_cat'] = str(ds.LANDUSEF.shape[1])
-            namelist['num_metgrid_soil_levels'] = str(ds.dims['num_st_layers'])
+            namelist['num_metgrid_soil_levels'] = str(ds.sizes['num_st_layers'])
             return namelist
         except Exception as e:
             print(e)
@@ -327,6 +329,7 @@ class WRFProcessor:
         self.run_wrf_process('./metgrid.exe')
         
         self.update_namelist_time_domain_from_wps()
+        self.adjust_domain_options()
         
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
@@ -351,6 +354,19 @@ if __name__ == "__main__":
     base_dir = '/Volumes/work/share_data/2025/WRF'
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'])
 
+    
+    paths = {
+        'wpsdir': os.environ.get('WPS'),
+        'wrfdir': os.environ.get('WRF'),
+        'geogdir': os.environ.get('WPS_GEOG'),
+        'renaldir': os.path.join(os.environ.get('RENAL'), "era5/"+domain_center['id']+'/'), 
+        'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
+    }
+
+    
+    base_dir = os.environ.get('SIMULATION')
+    run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
     wrf_processor.run_wrf()
     
