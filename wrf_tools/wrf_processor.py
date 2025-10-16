@@ -322,9 +322,6 @@ class WRFProcessor:
         replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
         self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements) 
-
-        self.update_namelist_time_domain_from_wps()
-        self.adjust_domain_options()
         
         self.run_wrf_process('./geogrid.exe')
         
