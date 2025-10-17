@@ -10,12 +10,13 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.paths = paths
         self.run_dir = run_dir
+        self.num_process = num_process
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -187,15 +188,69 @@ class WRFProcessor:
         
         open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(win))
 
+    def adjust_domain_options(self):
+        lines = open(os.path.join(self.run_dir, 'namelist.input')).readlines()
+        max_dom = self.domain['max_dom']
+
+        def adjust_values(line, max_dom):
+            # Extract the values after the '=' sign
+            match = re.match(r'(\s*\w+\s*=\s*)(.*)', line)
+            if not match:
+                return line  # Return the line as is if no match
+
+            prefix, values = match.groups()
+            values = values.strip().rstrip(',')
+            value_list = [v.strip() for v in values.split(',')]
+
+            # If there's only one value, keep it as is
+            if len(value_list) == 1:
+                return line
+
+            # Adjust the number of values to match max_dom
+            while len(value_list) < max_dom:
+                value_list.append(value_list[-1])  # Repeat the last value
+
+            adjusted_values = value_list[:max_dom]  # Truncate if too many
+
+            # Reconstruct the line
+            adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
+            return adjusted_line
+
+        in_physics = False
+        in_dynamics = False
+        updated_lines = []
+
+        for line in lines:
+            stripped_line = line.strip()
+
+            # Check if we are in the &physics or &dynamics section
+            if stripped_line.startswith('&physics'):
+                in_physics = True
+            elif stripped_line.startswith('&dynamics'):
+                in_dynamics = True
+            elif stripped_line.startswith('/'):
+                in_physics = False
+                in_dynamics = False
+
+            # Adjust lines in the &physics or &dynamics section
+            if in_physics or in_dynamics:
+                if '=' in line:
+                    line = adjust_values(line, max_dom)
+
+            updated_lines.append(line)
+
+        # Write the updated lines back to the file
+        open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(updated_lines))
+
     def get_met_em_info(self):
         try:
             namelist = {}
             met_em_files = sorted(glob.glob(os.path.join(self.run_dir, 'met_em*.nc')))
             if len(met_em_files) == 0: sys.exit()
             ds = xr.open_dataset(met_em_files[0])
-            namelist['num_metgrid_levels'] = str(ds.dims['num_metgrid_levels'])
+            namelist['num_metgrid_levels'] = str(ds.sizes['num_metgrid_levels'])
             namelist['num_land_cat'] = str(ds.LANDUSEF.shape[1])
-            namelist['num_metgrid_soil_levels'] = str(ds.dims['num_st_layers'])
+            namelist['num_metgrid_soil_levels'] = str(ds.sizes['num_st_layers'])
             return namelist
         except Exception as e:
             print(e)
@@ -274,12 +329,17 @@ class WRFProcessor:
         self.run_wrf_process('./metgrid.exe')
         
         self.update_namelist_time_domain_from_wps()
+        self.adjust_domain_options()
         
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
+<<<<<<< HEAD
         self.run_wrf_process('./wrf.exe', mpi=True, num_cores=24)
+=======
+        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
+>>>>>>> feature/visualization
 
 
 
@@ -300,7 +360,10 @@ if __name__ == "__main__":
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'])
 
     run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
+<<<<<<< HEAD
     #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
+=======
+>>>>>>> feature/visualization
 
     domain_center = {
         'id': 'Bangkok',
@@ -312,11 +375,16 @@ if __name__ == "__main__":
             'dx' : 18000, 'dy' : 18000, 
             'e_we_ini' : (100, 100, 100),
             'e_sn_ini' : (100, 100, 100) }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> feature/visualization
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
+<<<<<<< HEAD
         'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
         'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
         'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
@@ -347,6 +415,17 @@ if __name__ == "__main__":
     run_dir = os.path.join(base_dir, domain_center['id'], 'test')
 
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
+=======
+        'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
+        'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
+    }
+
+    
+    base_dir = os.environ.get('SIMULATION')
+    run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
+>>>>>>> feature/visualization
     wrf_processor.run_wrf()
     
     
