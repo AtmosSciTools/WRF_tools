@@ -11,6 +11,10 @@ conda install -c conda-forge wrf-python
 
 You can install it using the following command after downloading it.
 ```bash
+git clone https://github.com/AtmosSciTools/WRF_tools.git
+```
+
+```bash
 pip install WRF_tools
 ```
 
