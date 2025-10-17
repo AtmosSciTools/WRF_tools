@@ -335,11 +335,7 @@ class WRFProcessor:
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
-<<<<<<< HEAD
-        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=24)
-=======
         self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
->>>>>>> feature/visualization
 
 
 
@@ -360,10 +356,6 @@ if __name__ == "__main__":
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'])
 
     run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
-<<<<<<< HEAD
-    #domain_center = { 'id': 'Mogadishu', 'lat': 2.05, 'lon': 45.32 }
-=======
->>>>>>> feature/visualization
 
     domain_center = {
         'id': 'Bangkok',
@@ -375,47 +367,11 @@ if __name__ == "__main__":
             'dx' : 18000, 'dy' : 18000, 
             'e_we_ini' : (100, 100, 100),
             'e_sn_ini' : (100, 100, 100) }
-<<<<<<< HEAD
-
-=======
     
->>>>>>> feature/visualization
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
-<<<<<<< HEAD
-        'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
-        'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
-        'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
-    }
-
-    # run_period = { 'start_date' : "2024-01-01 00", 'end_date' : "2024-01-02 12" }
-
-    # domain_center = {
-    #     'id': 'Tokyo',
-    #     'lat': 35.75,
-    #     'lon': 139.75    }
-
-    # domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
-    #         'dx' : 18000, 'dy' : 18000, 
-    #         'e_we_ini' : (50, 52, 52),
-    #         'e_sn_ini' : (50, 52, 52) }
-
-    # paths = {
-    #     'wpsdir': os.environ.get('WPS'),
-    #     'wrfdir': os.environ.get('WRF'),
-    #     'geogdir': os.environ.get('WPS_GEOG'),
-    #     'renaldir': os.path.join(os.environ.get('DATA'), "reanalysis/era5/"+domain_center['id']+'/'),
-    #     'namelist_wps' : os.path.join(os.environ.get('WPS'), "namelist.wps"),
-    #     'namelist_input': os.path.join(os.environ.get('WRF'), "run/namelist.input")
-    # }
-
-    base_dir = os.environ.get('SIMULATION')
-    run_dir = os.path.join(base_dir, domain_center['id'], 'test')
-
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir)
-=======
         'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
         'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
         'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
@@ -425,7 +381,6 @@ if __name__ == "__main__":
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
->>>>>>> feature/visualization
     wrf_processor.run_wrf()
     
     
