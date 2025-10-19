@@ -364,22 +364,23 @@ if __name__ == "__main__":
 
     domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
             'dx' : 18000, 'dy' : 18000, 
-            'e_we_ini' : (52, 52, 52),
-            'e_sn_ini' : (52, 52, 52)
-    }
-
+            'e_we_ini' : (100, 100, 100),
+            'e_sn_ini' : (100, 100, 100) }
+    
+    setting = "test"
+    
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
         'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
-        'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists","namelist.wps"),
-        'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists","tropical_namelist.input")
+        'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.wps"),
+        'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
     }
 
     
     base_dir = os.environ.get('SIMULATION')
-    run_dir = os.path.join(base_dir, domain_center['id'], 'tropical')
+    run_dir = os.path.join(base_dir, domain_center['id'], setting)
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
     wrf_processor.run_wrf()
     
