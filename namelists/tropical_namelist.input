@@ -63,6 +63,7 @@
  num_land_cat                        = 21,
  sf_urban_physics                    = 0,     0,
  fractional_seaice                   = 1,
+ prec_acc_dt                         = 60,
  /
 
  &fdda
