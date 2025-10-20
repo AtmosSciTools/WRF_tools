@@ -26,3 +26,8 @@ from wrf_tools import WRFProcessor, ERA5DataDownloader
 
 
 ## Download observation data
+
+
+## Analysis and Visualization of WRF output in [noteook](./notebooks/visualization/)
+
+## Documents in[docs](./docs/)
