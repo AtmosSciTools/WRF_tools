@@ -16,7 +16,7 @@
  history_interval                    = 60,  60,
  frames_per_outfile                  = 1, 1,
  restart                             = .false.,
- restart_interval                    = 1440,
+ restart_interval                    = 10080,
  io_form_history                     = 2
  io_form_restart                     = 2
  io_form_input                       = 2
@@ -63,6 +63,7 @@
  num_land_cat                        = 21,
  sf_urban_physics                    = 0,     0,
  fractional_seaice                   = 1,
+ prec_acc_dt                         = 60,
  /
 
  &fdda

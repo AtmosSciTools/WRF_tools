@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
     
     base_dir = os.environ.get('SIMULATION')
-    run_dir = os.path.join(base_dir, domain_center['id'], setting)
+    run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
     wrf_processor.run_wrf()
     
