@@ -66,6 +66,7 @@
  distributed_ahe_opt                 = 0, !consider anthropogenic surface heat flux
  sf_surface_mosaic                   = 0 !(Optional)
  fractional_seaice                   = 1,
+ prec_acc_dt                         = 60,
  /
 
  &fdda
