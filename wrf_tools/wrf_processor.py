@@ -10,14 +10,14 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, lcz=False):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, other_GEOTBL=None):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.paths = paths
         self.run_dir = run_dir
         self.num_process = num_process
-        self.lcz = lcz
+        self.other_GEOTBL = other_GEOTBL
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -55,6 +55,24 @@ class WRFProcessor:
         return [(datetime.strptime(start_date, '%Y-%m-%d %H') + timedelta(days=i)).strftime('%Y%m%d') 
                 for i in range((datetime.strptime(end_date, '%Y-%m-%d %H') - datetime.strptime(start_date, '%Y-%m-%d %H')).days + 1)]
 
+    def copy_other_geotbl(self):
+        """
+        Copy specified GEOGRID.TBL variant (e.g. GEOGRID.TBL.ARW_LCZ)
+        to rundir/geogrid/GEOGRID.TBL if it exists.
+
+        Parameters:
+            rundir (str): Base run directory
+            other_GEOTBL (str): e.g. "GEOGRID.TBL.ARW_LCZ"
+        """
+        src = os.path.join(self.run_dir, "geogrid", self.other_GEOTBL)
+        dst = os.path.join(self.run_dir, "geogrid", "GEOGRID.TBL")
+
+        if os.path.exists(src):
+            shutil.copy(src, dst)
+            print(f"Copied {src} → {dst}")
+        else:
+            print(f"{src} does not exist")
+            pass
 
     def set_domains(self):
         max_dom = self.domain['max_dom']
@@ -310,6 +328,9 @@ class WRFProcessor:
         replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
         self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements) 
+        if self.other_GEOTBL:
+            self.copy_other_geotbl()
+
         self.run_wrf_process('./geogrid.exe')
         
         self.run_ungrib_era5(date_range)
