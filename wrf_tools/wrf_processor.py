@@ -10,13 +10,14 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, other_GEOTBL=None):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.paths = paths
         self.run_dir = run_dir
         self.num_process = num_process
+        self.other_GEOTBL = other_GEOTBL
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -54,6 +55,24 @@ class WRFProcessor:
         return [(datetime.strptime(start_date, '%Y-%m-%d %H') + timedelta(days=i)).strftime('%Y%m%d') 
                 for i in range((datetime.strptime(end_date, '%Y-%m-%d %H') - datetime.strptime(start_date, '%Y-%m-%d %H')).days + 1)]
 
+    def copy_other_geotbl(self):
+        """
+        Copy specified GEOGRID.TBL variant (e.g. GEOGRID.TBL.ARW_LCZ)
+        to rundir/geogrid/GEOGRID.TBL if it exists.
+
+        Parameters:
+            rundir (str): Base run directory
+            other_GEOTBL (str): e.g. "GEOGRID.TBL.ARW_LCZ"
+        """
+        src = os.path.join(self.run_dir, "geogrid", self.other_GEOTBL)
+        dst = os.path.join(self.run_dir, "geogrid", "GEOGRID.TBL")
+
+        if os.path.exists(src):
+            shutil.copy(src, dst)
+            print(f"Copied {src} → {dst}")
+        else:
+            print(f"{src} does not exist")
+            pass
 
     def set_domains(self):
         max_dom = self.domain['max_dom']
@@ -101,7 +120,8 @@ class WRFProcessor:
         vd['max_dom'] = str(max_dom)
         vd['start_date'] = ','.join([f'"{start_date.replace(" ", "_")}:00:00"']*max_dom)
         vd['end_date'] = ','.join([f'"{end_date.replace(" ", "_")}:00:00"']*max_dom)
-        vd['geog_data_res'] = '"modis_landuse_20class_30s_with_lakes", ' * max_dom
+        # vd['geog_data_res'] = '"modis_landuse_20class_30s_with_lakes", ' * max_dom
+        
         vd['parent_id'] = '1,1,2'  
         vd['parent_grid_ratio'] = ','.join(map(str, parent_grid_ratio))
         vd['dx'] = str(dx)
@@ -188,8 +208,8 @@ class WRFProcessor:
         
         open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(win))
 
-    def adjust_domain_options(self):
-        lines = open(os.path.join(self.run_dir, 'namelist.input')).readlines()
+    def adjust_domain_options(self, namelist_path):
+        lines = open(namelist_path).readlines()
         max_dom = self.domain['max_dom']
 
         def adjust_values(line, max_dom):
@@ -216,31 +236,14 @@ class WRFProcessor:
             adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
             return adjusted_line
 
-        in_physics = False
-        in_dynamics = False
         updated_lines = []
 
         for line in lines:
-            stripped_line = line.strip()
-
-            # Check if we are in the &physics or &dynamics section
-            if stripped_line.startswith('&physics'):
-                in_physics = True
-            elif stripped_line.startswith('&dynamics'):
-                in_dynamics = True
-            elif stripped_line.startswith('/'):
-                in_physics = False
-                in_dynamics = False
-
-            # Adjust lines in the &physics or &dynamics section
-            if in_physics or in_dynamics:
-                if '=' in line:
-                    line = adjust_values(line, max_dom)
-
+            line = adjust_values(line, max_dom)
             updated_lines.append(line)
 
         # Write the updated lines back to the file
-        open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(updated_lines))
+        open(namelist_path, 'w').write(''.join(updated_lines))
 
     def get_met_em_info(self):
         try:
@@ -318,10 +321,16 @@ class WRFProcessor:
         self.modify_namelist(self.paths['namelist_wps'], namelist_wps_out, {}) 
         self.modify_namelist(self.paths['namelist_input'], namelist_input_out, {}) 
         
+        self.adjust_domain_options(namelist_wps_out)
+        self.adjust_domain_options(namelist_input_out)
+
         replacements = self.generate_namelist_parameters()
         replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
         self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements) 
+        if self.other_GEOTBL:
+            self.copy_other_geotbl()
+
         self.run_wrf_process('./geogrid.exe')
         
         self.run_ungrib_era5(date_range)
@@ -329,7 +338,6 @@ class WRFProcessor:
         self.run_wrf_process('./metgrid.exe')
         
         self.update_namelist_time_domain_from_wps()
-        self.adjust_domain_options()
         
         replacements = self.get_met_em_info()
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
