@@ -61,9 +61,14 @@
  cudt                                = 0,     0,
  icloud                              = 1,
  num_land_cat                        = 21,
- sf_urban_physics                    = 1,     1,
- slucm_distributed_drag              = .false., !use slucm dataset
- distributed_ahe_opt                 = 0, !consider anthropogenic surface heat flux
+ sf_urban_physics                    = 2,     2,
+ num_urban_ndm                       = 1! (=  2 if BEP or BEM active) maximum number of street dimensions (ndm in BEP or BEM header)
+ num_urban_ng                        = 1! (= 10 if BEP or BEM active) number of grid levels in the ground (ng_u in BEP or BEM header)
+ num_urban_nwr                       = 1! (= 10 if BEP or BEM active) number of grid levels in the walls or roof (nwr_u in BEP or BEM header)
+ num_urban_nz                        = 1! (= 18 if BEP or BEM active) maximum number of vertical levels in the urban grid (nz_um in BEP or BEM header)
+ num_urban_ngb                       = 1! (= 10 if BEM active)        number of grid levels in the ground below building (ngb_u in BEM header)
+ num_urban_nf                        = 1! (= 10 if BEM active)        number of grid levels in the floors (nf_u in BEM header)
+ num_urban_nbui                      = 1! (= 15 if BEM active)        maximum number of types of buildings in an urban class (nbui_max in BEM header)
  sf_surface_mosaic                   = 0 !(Optional)
  fractional_seaice                   = 1,
  prec_acc_dt                         = 60, 60,
