@@ -72,7 +72,6 @@ class WRFProcessor:
             print(f"Copied {src} → {dst}")
         else:
             print(f"{src} does not exist")
-            pass
 
     def set_domains(self):
         max_dom = self.domain['max_dom']
@@ -259,7 +258,6 @@ class WRFProcessor:
             print(e)
             print('Errors: No met_em files')
             return {}
-            sys.exit()
             
 
     def run_ungrib_era5(self, date_range):

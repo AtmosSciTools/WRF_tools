@@ -62,10 +62,9 @@ try:
     cartopy_available = True
 except ImportError:
     cartopy_available = False
-    print("[WARNING] Basemap is not installed. Station location plotting will be skipped.")
+    print("[WARNING] cartopy is not installed. Station location plotting will be skipped.")
 
 
-import pandas as pd
 import xarray as xr
 import time
 import cartopy.crs as ccrs
@@ -227,7 +226,7 @@ class GHCNhProcessor:
                 self.ensure_directory_exists(downloaded_dir)
                 downloaded_file = os.path.join(downloaded_dir, filename)
                 if os.path.exists(downloaded_file):
-                    print(f"File {filename} is already exist")
+                    print(f"File {filename} already exists")
                 else:
                     print(f"Downloading: {url}")
                     downloaded_file = wget.download(url, out=downloaded_dir)
@@ -300,7 +299,7 @@ class GHCNhProcessor:
         - Not expected downloads (gray)
         """
         if not cartopy_available:
-            print("[INFO] Basemap is not available. Skipping station location plotting.")
+            print("[INFO] cartopy is not available. Skipping station location plotting.")
             return
 
         if self.stations_df is None or self.results_df is None:
@@ -419,7 +418,6 @@ if __name__ == "__main__":
 
     # %%
 
-    dataset_type = {'GHCNh', 'psv'}
     dataset = 'GHCNh'
     area = [min_lat, max_lat, min_lon, max_lon]
     processor = GHCNhProcessor(
