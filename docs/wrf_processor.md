@@ -11,8 +11,8 @@ This guide focuses on the minimum settings you need and step-by-step usage. Exis
 
 1) Set environment variables (WPS/WRF/GEOG path, repository root, reanalysis root, and run base). See [Environment Variables](#environment-variables) below.
 2) Define run period, domain center, and domain nest config using the code block under [Path definitions](#path-definitions).
-3) Download ERA5 GRIBs using ERA5DataDownloader into `paths['renaldir']`.
-4) Run WRFProcessor once templates are prepared in `namelists/<setting>_namelist.wps` and `namelists/<setting>_namelist.input`.
+3) Download ERA5 GRIBs using [ERA5DataDownloader](#era5datadownloader) into `paths['renaldir']`.
+4) Run[ WRFProcessor](#wrfprocessor) once templates are prepared in `namelists/<setting>_namelist.wps` and `namelists/<setting>_namelist.input`.
 
 Outputs: `met_em*` from WPS, `wrfinput_d0?`, `wrfbdy_d01`, and WRF outputs `wrfout_d0?_*` under your `run_dir`.
 
@@ -88,7 +88,7 @@ Use the snippet above as a template. Then adjust `run_period`, `domain_center`, 
 | ├─ **start_date** | Simulation start timestamp; used to set the initial time for the model run. | `start_date` |
 | └─ **end_date** | Simulation end timestamp; defines the termination time for the model run. | `end_date` |
 | **domain_center** | Dictionary specifying the domain’s identifier and geographic center. Used for directory naming and selecting reanalysis subsets. | &geogrid  |
-| ├─ **id** | Unique string identifier for the simulation domain (e.g., `"Kanto"`). | - |
+| ├─ **id** | Unique string identifier for the simulation domain (e.g., `"Tokyo"`). | - |
 | ├─ **lat** | Central latitude of the domain. | `ref_lat` |
 | └─ **lon** | Central longitude of the domain. | `ref_lon` |
 | **domain** | Dictionary containing WRF domain configuration parameters, including nesting and grid resolution. | &geogrid |
@@ -143,7 +143,8 @@ domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3),
         'e_we_ini' : (100, 100, 100),
         'e_sn_ini' : (100, 100, 100) }
 
-download_dir = os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/')
+download_dir = paths['renaldir']
+# download_dir = os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/')
 
 down = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
 down.download_data()
@@ -173,19 +174,7 @@ reanalysis
         └── era5_ungrib_surface_levels_20250108.grib
 ```
 
-### Key methods
-- `get_rectangle_bounds()`: returns dict with north/south/east/west bounds.
-- `generate_date_range()`: returns list of `YYYY-MM-DD` dates; if `end_date` has non-zero hour, includes the end day.
-- `download_pressure_level_data(date, area)`: writes one GRIB per day for mandatory pressure variables and levels.
-- `download_surface_level_data(date, area)`: writes one GRIB per day for surface/single-level variables.
-- `download_data()`: high-level loop over dates that calls both downloads.
-
-### Notes and tips
-- CDS credentials: create `~/.cdsapirc` with your API key. Test with a small request first.
-- Area order for CDS `area` is `[north, west, south, east]` (handled internally). Bounds are rounded to 0.01°.
-- Time steps: requests 00, 06, 12, 18 UTC consistent with typical WPS ungrib use.
-- Extent heuristic: width uses `dx * e_we_ini[0] * 2` to add margin; adjust if coastal domains need more ocean coverage.
-- Resume downloads: files are saved per day; reruns will skip already completed transfers.
+### More details in ["Details of ERA5DataDownloader"](#details-of-era5datadownloader)
 
 ## WRFProcessor
 
@@ -256,6 +245,27 @@ simulation/Run_WRF/
 - Infer metgrid dimensions and update counts (e.g., `num_metgrid_levels`) in `namelist.input`.
 - Launch `real.exe` and `wrf.exe` (MPI via `mpirun -np <num_process>`).
 
+### More details in ["Details of WRFProcessor"](#details-of-wrfprocessor)
+
+# Appendix
+## Details of ERA5DataDownloader
+
+### Key methods
+- `get_rectangle_bounds()`: returns dict with north/south/east/west bounds.
+- `generate_date_range()`: returns list of `YYYY-MM-DD` dates; if `end_date` has non-zero hour, includes the end day.
+- `download_pressure_level_data(date, area)`: writes one GRIB per day for mandatory pressure variables and levels.
+- `download_surface_level_data(date, area)`: writes one GRIB per day for surface/single-level variables.
+- `download_data()`: high-level loop over dates that calls both downloads.
+
+### Notes and tips
+- CDS credentials: create `~/.cdsapirc` with your API key. Test with a small request first.
+- Area order for CDS `area` is `[north, west, south, east]` (handled internally). Bounds are rounded to 0.01°.
+- Time steps: requests 00, 06, 12, 18 UTC consistent with typical WPS ungrib use.
+- Extent heuristic: width uses `dx * e_we_ini[0] * 2` to add margin; adjust if coastal domains need more ocean coverage.
+- Resume downloads: files are saved per day; reruns will skip already completed transfers.
+
+## Details of WRFProcessor
+
 ### What it automates
 - Directory setup: copies `{geogrid,ungrib,metgrid}` folders and their executables from `paths['wpsdir']` and links `link_grib.csh`.
 - WRF runtime: copies all files from `paths['wrfdir']/run` except an existing `namelist.input`.
@@ -285,6 +295,7 @@ simulation/Run_WRF/
 2) Prepare templates in `namelists/<setting>_namelist.(wps|input)`.
 3) Export environment variables, build `paths` and `run_dir`.
 4) Instantiate `WRFProcessor(..., num_process=N)` and call `run_wrf()`.
+
 
 ## GHCNDataDownloader
 
