@@ -22,7 +22,7 @@ git clone https://github.com/AtmosSciTools/WRF_tools.git
 ```
 
 ```bash
-pip install git+
+pip install git+https://github.com/AtmosSciTools/WRF_tools.git@feature/visualization
 ```
 
 ## Usage
