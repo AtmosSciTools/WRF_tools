@@ -2,6 +2,7 @@
 wrf_tools/.ipynb_checkpoints/
 data/
 sample_data/
+jobscripts/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
