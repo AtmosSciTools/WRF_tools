@@ -61,14 +61,7 @@
  cudt                                = 0,     0,
  icloud                              = 1,
  num_land_cat                        = 21,
- sf_urban_physics                    = 2,     2,
- num_urban_ndm                       = 2! (=  2 if BEP or BEM active) maximum number of street dimensions (ndm in BEP or BEM header)
- num_urban_ng                        = 10,! (= 10 if BEP or BEM active) number of grid levels in the ground (ng_u in BEP or BEM header)
- num_urban_nwr                       = 10,! (= 10 if BEP or BEM active) number of grid levels in the walls or roof (nwr_u in BEP or BEM header)
- num_urban_nz                        = 18,! (= 18 if BEP or BEM active) maximum number of vertical levels in the urban grid (nz_um in BEP or BEM header)
- num_urban_ngb                       = 10,! (= 10 if BEM active)        number of grid levels in the ground below building (ngb_u in BEM header)
- num_urban_nf                        = 10,! (= 10 if BEM active)        number of grid levels in the floors (nf_u in BEM header)
- num_urban_nbui                      = 15,! (= 15 if BEM active)        maximum number of types of buildings in an urban class (nbui_max in BEM header)
+ sf_urban_physics                    = 2, ! Multi-layer, Building Environment Parameterization (BEP) scheme
  sf_surface_mosaic                   = 0, !(Optional)
  fractional_seaice                   = 1,
  prec_acc_dt                         = 60, 60,
