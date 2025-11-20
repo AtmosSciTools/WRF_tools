@@ -61,10 +61,11 @@
  cudt                                = 0,     0,
  icloud                              = 1,
  num_land_cat                        = 21,
- sf_urban_physics                    = 2, ! Multi-layer, Building Environment Parameterization (BEP) scheme
+ sf_urban_physics                    = 3,     3, ! Use BEM where appropriate
  sf_surface_mosaic                   = 0, !(Optional)
  fractional_seaice                   = 1,
  prec_acc_dt                         = 60, 60,
+ use_wudapt_lcz                       = 1,
  /
 
  &fdda
