@@ -10,7 +10,7 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, other_GEOTBL=None):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, other_GEOTBL=None, force=None):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
@@ -18,10 +18,24 @@ class WRFProcessor:
         self.run_dir = run_dir
         self.num_process = num_process
         self.other_GEOTBL = other_GEOTBL
+        self.force = force
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
-        os.makedirs(self.run_dir, exist_ok=True)
+        # If the run directory already exists, handle according to `self.force`.
+        if os.path.exists(self.run_dir):
+            if self.force is True:
+                # remove existing directory tree and recreate
+                shutil.rmtree(self.run_dir)
+                os.makedirs(self.run_dir)
+            else:
+                # Non-interactive: raise an error to avoid accidental overwrites
+                raise FileExistsError(
+                    f"Run directory '{self.run_dir}' already exists. "
+                    "To overwrite, initialize WRFProcessor with force=True."
+                )
+        else:
+            os.makedirs(self.run_dir)
         for idir in ['geogrid', 'ungrib', 'metgrid']:
             shutil.copytree(os.path.join(wpsdir, idir), os.path.join(self.run_dir, idir), dirs_exist_ok=True)
             shutil.copy2(os.path.join(wpsdir, f'{idir}.exe'), os.path.join(self.run_dir, f'{idir}.exe'))
