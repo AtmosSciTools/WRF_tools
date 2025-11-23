@@ -227,13 +227,23 @@ class WRFProcessor:
 
         def adjust_values(line, max_dom):
             # Extract the values after the '=' sign
-            match = re.match(r'(\s*\w+\s*=\s*)(.*)', line)
+            # Treat '!' as a comment marker (like '#' in Python):
+            # ignore anything after the first '!' when parsing values.
+            comment = ''
+            if '!' in line:
+                idx = line.find('!')
+                comment = line[idx:].rstrip('\n')
+                line_content = line[:idx]
+            else:
+                line_content = line
+
+            match = re.match(r'(\s*\w+\s*=\s*)(.*)', line_content)
             if not match:
-                return line  # Return the line as is if no match
+                return line  # Return the original line if no match
 
             prefix, values = match.groups()
             values = values.strip().rstrip(',')
-            value_list = [v.strip() for v in values.split(',')]
+            value_list = [v.strip() for v in values.split(',')] if values != '' else []
 
             # If there's only one value, keep it as is
             if len(value_list) == 1:
@@ -245,8 +255,11 @@ class WRFProcessor:
 
             adjusted_values = value_list[:max_dom]  # Truncate if too many
 
-            # Reconstruct the line
-            adjusted_line = f"{prefix}{', '.join(adjusted_values)},\n"
+            # Reconstruct the line, re-attach comment if present
+            adjusted_line = f"{prefix}{', '.join(adjusted_values)},"
+            if comment:
+                adjusted_line += ' ' + comment
+            adjusted_line += '\n'
             return adjusted_line
 
         updated_lines = []
@@ -355,7 +368,7 @@ class WRFProcessor:
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
-        self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
+        # self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
 
 
 
@@ -387,7 +400,7 @@ if __name__ == "__main__":
             'e_we_ini' : (100, 100, 100),
             'e_sn_ini' : (100, 100, 100) }
     
-    setting = "test"
+    setting = "bem_mlucm_default"
     
     paths = {
         'wpsdir': os.environ.get('WPS'),
@@ -401,7 +414,7 @@ if __name__ == "__main__":
     
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 16)
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 24, force=True)
     wrf_processor.run_wrf()
     
     
