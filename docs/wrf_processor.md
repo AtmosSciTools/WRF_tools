@@ -22,6 +22,9 @@ Outputs: `met_em*` from WPS, `wrfinput_d0?`, `wrfbdy_d01`, and WRF outputs `wrfo
 
 Add the following example to your shell startup file (e.g., `~/.bashrc` or `~/.profile`). Edit the paths to match your system before sourcing the file.
 
+Notes:
+- Environment variables are not required if you set paths directly in the Python code or manage them via a configuration file.
+
 ```bash
 # filepath: ~/.bashrc (example lines to add)
 # Set WPS, WRF, and geographic data locations
@@ -41,76 +44,7 @@ export SIMULATION="/home/user/simulations"
 
 - After editing, reload: `source ~/.bashrc`
 
-Notes:
-- You may set paths directly in Python code instead of environment variables, or manage them via a hidden file such as `.env`.
 
-## Domain and Path Setup
-
-### Path definitions
-
-- **Python script**
-
-```python
-run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
-
-domain_center = {
-    'id': 'Bangkok',
-    'lat': 13.75,
-    'lon': 100.50
-}
-
-domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
-        'dx' : 18000, 'dy' : 18000, 
-        'e_we_ini' : (100, 100, 100),
-        'e_sn_ini' : (100, 100, 100) }
-
-paths = {
-    'wpsdir': os.environ.get('WPS'),
-    'wrfdir': os.environ.get('WRF'),
-    'geogdir': os.environ.get('WPS_GEOG'),
-    'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
-    'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.wps"),
-    'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
-}
-
-setting = "test"
-base_dir = os.environ.get('SIMULATION')
-run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
-```
-
-Use the snippet above as a template. Then adjust `run_period`, `domain_center`, `domain`, and `setting` per your case.
-
-### Simulation / Domain variables
-
-| Variable name | Description | namelist.wps |
-|:---|:---|:---|
-| **run_period** | Dictionary defining the simulation period. Contains:  | &share |
-| ├─ **start_date** | Simulation start timestamp; used to set the initial time for the model run. | `start_date` |
-| └─ **end_date** | Simulation end timestamp; defines the termination time for the model run. | `end_date` |
-| **domain_center** | Dictionary specifying the domain’s identifier and geographic center. Used for directory naming and selecting reanalysis subsets. | &geogrid  |
-| ├─ **id** | Unique string identifier for the simulation domain (e.g., `"Tokyo"`). | - |
-| ├─ **lat** | Central latitude of the domain. | `ref_lat` |
-| └─ **lon** | Central longitude of the domain. | `ref_lon` |
-| **domain** | Dictionary containing WRF domain configuration parameters, including nesting and grid resolution. | &geogrid |
-| ├─ **max_dom** | Number of nested domains. |  `max_dom` |
-| ├─ **parent_grid_ratio** | Ratio of grid spacing between parent and child domains. | `parent_grid_ratio` |
-| ├─ **dx**, **dy** | Horizontal grid spacing (m) in the west–east and south–north directions. |  `dx`, `dy` |
-| ├─ **e_we_ini**, **e_sn_ini** | Initial domain size (grid points) before refinement or adjustment. | `e_we`, `e_sn` |
-
-### Run settings and paths
-
-| Variable name | Description |
-|:---|:---|
-| **paths** | Dictionary containing all key directory and configuration file paths used by WRF and WPS. |
-| ├─ **wpsdir** | Path to the WPS installation directory (from `$WPS`). |
-| ├─ **wrfdir** | Path to the WRF installation directory (from `$WRF`). |
-| ├─ **geogdir** | Path to the WPS geographic data directory (from `$WPS_GEOG`). |
-| ├─ **renaldir** | Path to the ERA5 reanalysis data for the domain (constructed from `$REANAL` and `domain_center['id']`). |
-| ├─ **namelist_wps** | Path to the WPS namelist file for the current setting (constructed from `$WRF_TOOLS` and `setting`). |
-| └─ **namelist_input** | Path to the WRF `namelist.input` file for the current setting (constructed from `$WRF_TOOLS` and `setting`). |
-| **setting** | Logical name for the current configuration; determines which namelist files are used (e.g., `"test"`). |
-| **base_dir** | Root directory for simulations (from `$SIMULATION`); serves as the top-level directory for all runs. |
-| **run_dir** | Full path to the run directory for the specific domain and setting: `base_dir/Run_WRF/<domain_center['id']>/<setting>`. |
 
 
 ## ERA5DataDownloader
@@ -181,39 +115,73 @@ reanalysis
 - Location: `wrf_tools/wrf_processor.py`
 - Purpose: End-to-end orchestration to configure WPS/WRF, pre-process ERA5, and run `real.exe` and `wrf.exe` (MPI supported).
 
-### Minimal driver example
-
+### Domain and Path Setup
 - **Python script**
+Use the snippet below as a template. Then adjust `run_period`, `domain_center`, `domain`, and `setting` per your case.
 
 ```python
-from wrf_tools.wrf_processor import WRFProcessor
-import os
+run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
 
-run_period = {'start_date': '2025-01-01 00', 'end_date': '2025-01-08 00'}
-domain_center = {'id': 'Bangkok', 'lat': 13.75, 'lon': 100.50}
-domain = {
-    'max_dom': 3,
-    'parent_grid_ratio': (1, 3, 3),
-    'dx': 18000, 'dy': 18000,
-    'e_we_ini': (100, 100, 100),
-    'e_sn_ini': (100, 100, 100)
+domain_center = {
+    'id': 'Bangkok',
+    'lat': 13.75,
+    'lon': 100.50
 }
 
-setting = 'test'
+domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
+        'dx' : 18000, 'dy' : 18000, 
+        'e_we_ini' : (100, 100, 100),
+        'e_sn_ini' : (100, 100, 100) }
+
 paths = {
-    'wpsdir': os.environ['WPS'],
-    'wrfdir': os.environ['WRF'],
-    'geogdir': os.environ['WPS_GEOG'],
-    'renaldir': os.path.join(os.environ['REANAL'], f"era5/{domain_center['id']}/"),
-    'namelist_wps': os.path.join(os.environ['WRF_TOOLS'], 'namelists', f'{setting}_namelist.wps'),
-    'namelist_input': os.path.join(os.environ['WRF_TOOLS'], 'namelists', f'{setting}_namelist.input'),
+    'wpsdir': os.environ.get('WPS'),
+    'wrfdir': os.environ.get('WRF'),
+    'geogdir': os.environ.get('WPS_GEOG'),
+    'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
+    'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.wps"),
+    'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
 }
 
-run_dir = os.path.join(os.environ['SIMULATION'], 'Run_WRF', domain_center['id'], setting)
-
-wrf = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=16, other_GEOTBL=None)
-wrf.run_wrf()
+setting = "test"
+base_dir = os.environ.get('SIMULATION')
+run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
 ```
+
+
+
+
+### Simulation / Domain variables
+
+| Variable name | Description | namelist.wps |
+|:---|:---|:---|
+| **run_period** | Dictionary defining the simulation period. Contains:  | &share |
+| ├─ **start_date** | Simulation start timestamp; used to set the initial time for the model run. | `start_date` |
+| └─ **end_date** | Simulation end timestamp; defines the termination time for the model run. | `end_date` |
+| **domain_center** | Dictionary specifying the domain’s identifier and geographic center. Used for directory naming and selecting reanalysis subsets. | &geogrid  |
+| ├─ **id** | Unique string identifier for the simulation domain (e.g., `"Tokyo"`). | - |
+| ├─ **lat** | Central latitude of the domain. | `ref_lat` |
+| └─ **lon** | Central longitude of the domain. | `ref_lon` |
+| **domain** | Dictionary containing WRF domain configuration parameters, including nesting and grid resolution. | &geogrid |
+| ├─ **max_dom** | Number of nested domains. |  `max_dom` |
+| ├─ **parent_grid_ratio** | Ratio of grid spacing between parent and child domains. | `parent_grid_ratio` |
+| ├─ **dx**, **dy** | Horizontal grid spacing (m) in the west–east and south–north directions. |  `dx`, `dy` |
+| ├─ **e_we_ini**, **e_sn_ini** | Initial domain size (grid points) before refinement or adjustment. | `e_we`, `e_sn` |
+
+### Run settings and paths
+
+| Variable name | Description |
+|:---|:---|
+| **paths** | Dictionary containing all key directory and configuration file paths used by WRF and WPS. |
+| ├─ **wpsdir** | Path to the WPS installation directory (from `$WPS`). |
+| ├─ **wrfdir** | Path to the WRF installation directory (from `$WRF`). |
+| ├─ **geogdir** | Path to the WPS geographic data directory (from `$WPS_GEOG`). |
+| ├─ **renaldir** | Path to the ERA5 reanalysis data for the domain (constructed from `$REANAL` and `domain_center['id']`). |
+| ├─ **namelist_wps** | Path to the WPS namelist file for the current setting (constructed from `$WRF_TOOLS` and `setting`). |
+| └─ **namelist_input** | Path to the WRF `namelist.input` file for the current setting (constructed from `$WRF_TOOLS` and `setting`). |
+| **setting** | Logical name for the current configuration; determines which namelist files are used (e.g., `"test"`). |
+| **base_dir** | Root directory for simulations (from `$SIMULATION`); serves as the top-level directory for all runs. |
+| **run_dir** | Full path to the run directory for the specific domain and setting: `base_dir/Run_WRF/<domain_center['id']>/<setting>`. |
+
 
 - **Output data**
 
