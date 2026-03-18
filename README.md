@@ -30,11 +30,8 @@ pip install git+https://github.com/AtmosSciTools/WRF_tools.git@feature/visualiza
 ```python
 from wrf_tools import WRFProcessor, ERA5DataDownloader
 ```
-
-
-## Download observation data
+More details in [docs/wrf_tools_usage.md](./docs/wrf_tools_usage.md)
 
 
 ## Analysis and Visualization of WRF output in [notebook](./notebooks/visualization/)
 
-## Documents in [docs](./docs/)
