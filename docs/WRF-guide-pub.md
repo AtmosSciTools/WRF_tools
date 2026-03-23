@@ -1,14 +1,4 @@
----
-title: "WRF/WPS Workflow Document"
-author: "Mamoru Yuasa"
-header-includes:
-  - \usepackage{graphicx}
-  - \setkeys{Gin}{width=\linewidth, keepaspectratio}
----
-
-
-
-# WRF/WPS Workflow Document{.no-number}
+# WRF/WPS Workflow Document
 
 
 ## Preparation
@@ -605,7 +595,7 @@ ncview <netcdf-file>
 <div style="page-break-after: always;"></div>
 
 
-## Appendix: Common Pitfalls (Short Version) {.no-number}
+## Appendix: Common Pitfalls (Short Version)
 - **`interval_seconds` mismatch**: If ERA5 is 3h but set to 1h, values may be missing. Match to the acquisition interval.
 - **Insufficient required variables**: If required surface + upper-level variables are missing, `metgrid/real` will stop. Review the variable list.
 - **Domain/resolution mismatch**: Poor balance between `dx, dy` and `time_step` can cause instability. As a rule of thumb, `time_step ≈ dx(km) × 6`.
