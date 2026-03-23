@@ -367,24 +367,44 @@ class GHCNhProcessor:
         """
         Plot and save heatmaps showing data availability by year and variable.
         """
+
         if not seaborn_available:
             print("[INFO] Seaborn is not available. Skipping availability heatmaps.")
             return
 
-        if self.combined_availability_df is None or self.combined_availability_df.empty:
-            print("No availability data to plot.")
-            return
 
         summary_dir = os.path.join(self.output_dir, "summaries")
         self.ensure_directory_exists(summary_dir)
+
+        if self.stations_df is None or self.combined_availability_df.empty:
+            print("Stations and results dataframes are required. Run the process first.")
+            # return
+            summary_dir = os.path.join(self.output_dir, "summaries")
+            self.stations_df = pd.read_csv(os.path.join(summary_dir, "stations_summary.csv"))
+            self.results_df = pd.read_csv(os.path.join(summary_dir, "download_results.csv"))
+            self.combined_availability_df = pd.read_csv(os.path.join(summary_dir, "availability_summary.csv"))
+
 
         for station in self.combined_availability_df['Station'].unique():
             station_data = self.combined_availability_df[
                 self.combined_availability_df['Station'] == station
             ].drop(columns=['Station'])
-            station_data.columns = station_data.columns.astype(str)
 
-            plt.figure(figsize=(10, 6))
+            # Exclude metadata-like variables from heatmap rows based on the Variable column.
+            excluded_suffixes = ('_Code', '_ID', '_Type')
+            station_data = station_data[
+                ~station_data['Variable'].astype(str).str.endswith(excluded_suffixes, na=False)
+            ]
+            if station_data.empty:
+                print(f"[INFO] No plottable variables for station {station} after filtering. Skipping.")
+                continue
+
+            station_data = station_data.set_index('Variable')
+            station_data.columns = station_data.columns.astype(str)
+            station_data = station_data.apply(pd.to_numeric, errors='coerce')
+
+            fig_height = max(8, len(station_data.index) * 0.2)
+            plt.figure(figsize=(10, fig_height))
             plt.title(f"Variable Availability for Station {station}")
             sns.heatmap(station_data, annot=True, cmap="YlGnBu", cbar_kws={'label': 'Proportion of Available Data'})
             plt.xlabel("Year")
@@ -406,29 +426,27 @@ if __name__ == "__main__":
     # %%
 
     # File paths
-    domain_id = 'Example'
-    geo_em_d3 = f'../sample_data/simulation/wrf_output/{domain_id}/geo_em.d02.nc'
+    domain_id = 'Bangkok'
+    geo_em_d3 = os.path.join(os.environ.get('SIMULATION'), f'Run_WRF/{domain_id}/test/geo_em.d03.nc')
 
     ds = xr.open_dataset(geo_em_d3)
-    min_lat = ds['XLAT_C'].values[0][0, 0]
-    max_lat = ds['XLAT_C'].values[0][-1, 0]
-    min_lon = ds['XLONG_C'].values[0][0, 0]
-    max_lon = ds['XLONG_C'].values[0][0, -1]
-    print([min_lat, max_lat, min_lon, max_lon])
+    area = [
+        float(ds['XLAT_C'].values[0][0, 0]),
+        float(ds['XLAT_C'].values[0][-1, 0]),
+        float(ds['XLONG_C'].values[0][0, 0]),
+        float(ds['XLONG_C'].values[0][0, -1]),
+    ]
 
     # %%
-
-    dataset = 'GHCNh'
-    area = [min_lat, max_lat, min_lon, max_lon]
     processor = GHCNhProcessor(
         start_year=2025,
         end_year=2025,
         area=area,
-        output_dir=f"../sample_data/point_data/{dataset}"
+        output_dir=os.path.join(os.environ.get('SIMULATION'), "GHCN_data")
     )
 
-    processor.download_data()                    # Run data download and processing
-    processor.plot_station_locations() # Plot station locations with categories
+    # processor.download_data()                    # Run data download and processing
+    # processor.plot_station_locations() # Plot station locations with categories
     processor.plot_availability_heatmaps()  # Plot heatmaps (if seaborn is available)
     
     
