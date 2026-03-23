@@ -10,7 +10,7 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, other_GEOTBL=None, force=None):
+    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
@@ -19,6 +19,7 @@ class WRFProcessor:
         self.num_process = num_process
         self.other_GEOTBL = other_GEOTBL
         self.force = force
+        self.run_wrf_flag = run_wrf
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -357,10 +358,13 @@ class WRFProcessor:
             self.copy_other_geotbl()
 
         self.run_wrf_process('./geogrid.exe')
+        print('---geogrid done')
         
         self.run_ungrib_era5(date_range)
+        print('---ungrib done')
         
         self.run_wrf_process('./metgrid.exe')
+        print('---metgrid done')
         
         self.update_namelist_time_domain_from_wps()
         
@@ -368,8 +372,11 @@ class WRFProcessor:
         self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
         
         self.run_wrf_process('./real.exe')
-        # self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
+        print('---real done')
 
+        if self.run_wrf_flag:
+            self.run_wrf_process('./wrf.exe', mpi=True, num_cores=self.num_process)
+            print('---wrf done')
 
 
 if __name__ == "__main__":
@@ -414,7 +421,7 @@ if __name__ == "__main__":
     
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
-    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, 24, force=True)
+    wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None)
     wrf_processor.run_wrf()
     
     
