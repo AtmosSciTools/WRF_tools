@@ -22,7 +22,7 @@ Outputs: `met_em*` from WPS, `wrfinput_d0?`, `wrfbdy_d01`, and WRF outputs `wrfo
 
 Add the following example to your shell startup file (e.g., `~/.bashrc` or `~/.profile`). Edit the paths to match your system before sourcing the file.
 
-Notes:
+**Notes**:
 - Environment variables are not required if you set paths directly in the Python code or manage them via a configuration file.
 
 ```bash
@@ -77,11 +77,20 @@ domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3),
         'e_we_ini' : (100, 100, 100),
         'e_sn_ini' : (100, 100, 100) }
 
+paths = {
+    'wpsdir': os.environ.get('WPS'),
+    'wrfdir': os.environ.get('WRF'),
+    'geogdir': os.environ.get('WPS_GEOG'),
+    'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
+    'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.wps"),
+    'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
+}
+
 download_dir = paths['renaldir']
 # download_dir = os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/')
 
-down = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
-down.download_data()
+downloader = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
+downloader.download_data()
 ```
 
 - **downloaded data**
@@ -121,6 +130,7 @@ Use the snippet below as a template. Then adjust `run_period`, `domain_center`, 
 
 ```python
 run_period = { 'start_date' : "2025-01-01 00", 'end_date' : "2025-01-08 00" }
+setting = "test"
 
 domain_center = {
     'id': 'Bangkok',
@@ -142,9 +152,10 @@ paths = {
     'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
 }
 
-setting = "test"
 base_dir = os.environ.get('SIMULATION')
 run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
+wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None)
+wrf_processor.run_wrf()
 ```
 
 
@@ -182,6 +193,12 @@ run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
 | **base_dir** | Root directory for simulations (from `$SIMULATION`); serves as the top-level directory for all runs. |
 | **run_dir** | Full path to the run directory for the specific domain and setting: `base_dir/Run_WRF/<domain_center['id']>/<setting>`. |
 
+### Optional settings
+
+- `num_process` (default: `4`): Number of MPI processes used when launching `wrf.exe`.
+- `run_wrf` (default: `True`): If `False`, stop after `real.exe` and skip execution of `wrf.exe`.
+- `other_GEOTBL` (default: `None`): Optional GEOGRID table variant filepath copied to `geogrid/GEOGRID.TBL`.
+- `force` (default: `None`): If set to `True`, delete an existing `run_dir` and recreate it before processing.
 
 - **Output data**
 
@@ -283,7 +300,7 @@ simulation/Run_WRF/
 from wrf_tools.ghcn_download_processor import GHCNhProcessor
 import xarray as xr
 
-geo_em = 'path/to/geo_em.d02.nc'
+geo_em = 'path/to/geo_em.d03.nc'
 ds = xr.open_dataset(geo_em)
 area = [
     float(ds['XLAT_C'].values[0][0, 0]),
@@ -292,10 +309,10 @@ area = [
     float(ds['XLONG_C'].values[0][0, -1]),
 ]
 
-proc = GHCNhProcessor(start_year=2024, end_year=2024, area=area, output_dir='out/GHCNh')
-proc.download_data()
-proc.plot_station_locations()       # if cartopy is installed
-proc.plot_availability_heatmaps()   # if seaborn is installed
+processor = GHCNhProcessor(start_year=2024, end_year=2024, area=area, output_dir='out/GHCNh')
+processor.download_data()
+processor.plot_station_locations()       # if cartopy is installed
+processor.plot_availability_heatmaps()   # if seaborn is installed
 ```
 
 ### Dependencies:
