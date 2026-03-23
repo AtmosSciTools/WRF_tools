@@ -308,7 +308,6 @@ class GHCNhProcessor:
             summary_dir = os.path.join(self.output_dir, "summaries")
             self.stations_df = pd.read_csv(os.path.join(summary_dir, "stations_summary.csv"))
             self.results_df = pd.read_csv(os.path.join(summary_dir, "download_results.csv"))
-            self.combined_availability_df = pd.read_csv(os.path.join(summary_dir, "availability_summary.csv"))
 
         # Categorize stations based on download results
         success_stations = self.results_df[self.results_df['Status'] == 'Success']['Station'].unique()
@@ -376,30 +375,32 @@ class GHCNhProcessor:
         summary_dir = os.path.join(self.output_dir, "summaries")
         self.ensure_directory_exists(summary_dir)
 
-        if self.stations_df is None or self.combined_availability_df.empty:
+        if self.combined_availability_df is None:
             print("Stations and results dataframes are required. Run the process first.")
             # return
             summary_dir = os.path.join(self.output_dir, "summaries")
-            self.stations_df = pd.read_csv(os.path.join(summary_dir, "stations_summary.csv"))
-            self.results_df = pd.read_csv(os.path.join(summary_dir, "download_results.csv"))
-            self.combined_availability_df = pd.read_csv(os.path.join(summary_dir, "availability_summary.csv"))
+            self.combined_availability_df = pd.read_csv(
+                os.path.join(summary_dir, "availability_summary.csv"),
+                index_col='Variable'
+            )
 
+        if 'Variable' in self.combined_availability_df.columns:
+            self.combined_availability_df = self.combined_availability_df.set_index('Variable')
 
         for station in self.combined_availability_df['Station'].unique():
             station_data = self.combined_availability_df[
                 self.combined_availability_df['Station'] == station
             ].drop(columns=['Station'])
 
-            # Exclude metadata-like variables from heatmap rows based on the Variable column.
+            # Exclude metadata-like variables from heatmap rows based on Variable index values.
             excluded_suffixes = ('_Code', '_ID', '_Type')
-            station_data = station_data[
-                ~station_data['Variable'].astype(str).str.endswith(excluded_suffixes, na=False)
+            station_data = station_data.loc[
+                ~station_data.index.to_series().astype(str).str.endswith(excluded_suffixes, na=False)
             ]
             if station_data.empty:
                 print(f"[INFO] No plottable variables for station {station} after filtering. Skipping.")
                 continue
 
-            station_data = station_data.set_index('Variable')
             station_data.columns = station_data.columns.astype(str)
             station_data = station_data.apply(pd.to_numeric, errors='coerce')
 
