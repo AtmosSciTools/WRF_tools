@@ -46,7 +46,7 @@ class ERA5DataDownloader:
             end_date += timedelta(days=1)
 
         return [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') 
-                for i in range((end_date - start_date).days + 1)]
+                for i in range((end_date - start_date).days)]
 
     def download_pressure_level_data(self, date, area):
         """Download ERA5 pressure-level data for a specific date."""
