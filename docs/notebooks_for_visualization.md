@@ -58,7 +58,7 @@ sample_data # data_dir
 
 - If you want to change the directory structure, **you need to manually modify the file paths yourself.**
 
-## [10_domain_overview.ipynb](notebooks/visualization/10_domain_overview.ipynb)
+## [10_domain_overview.ipynb](../notebooks/visualization/10_domain_overview.ipynb)
 
 ### Description
 Visualize WRF domain nesting from geo_em files, with optional land use and elevation overlays.
@@ -71,7 +71,7 @@ Visualize WRF domain nesting from geo_em files, with optional land use and eleva
 
  
 
-## [20_timeseries_point.ipynb](notebooks/visualization/20_timeseries_point.ipynb)
+## [20_timeseries_point.ipynb](../notebooks/visualization/20_timeseries_point.ipynb)
 
 ### Description
 Plot time series at selected points from WRF outputs, optionally compare with GHCN hourly observations.
@@ -85,7 +85,7 @@ Plot time series at selected points from WRF outputs, optionally compare with GH
 
  
 
-## [30_plot_2d_maps.ipynb](notebooks/visualization/30_plot_2d_maps.ipynb)
+## [30_plot_2d_maps.ipynb](../notebooks/visualization/30_plot_2d_maps.ipynb)
 
 ### Description
 Render 2D map fields from WRF outputs for a chosen time and domain using Cartopy.
