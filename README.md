@@ -3,7 +3,7 @@
 A Python library to process WRF simulations and download ERA5 data.
 
 ## Installation
-If you want to use [wrf-python](https://wrf-python.readthedocs.io/en/latest/index.html), we recommend using [conda](https://www.anaconda.com/docs/getting-started/miniconda/install#using-miniconda-in-a-commercial-setting) for installation.
+If you want to use [wrf-python](https://wrf-python.readthedocs.io/en/latest/index.html), we recommend using [conda(miniconda)](https://www.anaconda.com/docs/getting-started/miniconda/install#using-miniconda-in-a-commercial-setting) or [minforge](https://conda-forge.org/download/) for installation.
 
 You can install necessary enviroments from enviroment.yaml
 ```bash
@@ -31,6 +31,13 @@ pip install git+https://github.com/AtmosSciTools/WRF_tools.git@feature/visualiza
 from wrf_tools import WRFProcessor, ERA5DataDownloader
 ```
 More details in [docs/wrf_tools_usage.md](./docs/wrf_tools_usage.md)
+
+## Documents
+
+
+## test simulation
+[run_bangkok.ipynb](./test/run_Bangkok.ipynb)
+
 
 
 ## Analysis and Visualization of WRF output in [notebook](./notebooks/visualization/)
