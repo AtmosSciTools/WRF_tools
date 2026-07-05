@@ -124,11 +124,8 @@ class GHCNhProcessor:
             # Use reindex to add missing times, values automatically become NaN
             d = d.reindex(full_index)
 
-            availability_data = {
-                'Variable': d.columns,
-                year: [(d[d.index.year == year][var].count() / len(d[d.index.year == year][var])) for var in d.columns]
-            }
-            availability_matrix = pd.DataFrame(availability_data).set_index('Variable')
+            availability_matrix = (d.count() / len(d)).rename(year).to_frame()
+            availability_matrix.index.name = 'Variable'
 
             # Save processed data
             output_name = os.path.splitext(ofile or os.path.basename(fil))[0] + ".csv"
@@ -244,6 +241,13 @@ class GHCNhProcessor:
 
         print("\nAll results have been saved successfully.")
 
+    def load_summary_csv(self, filename, **read_csv_kwargs):
+        summary_path = os.path.join(self.output_dir, "summaries", filename)
+        if not os.path.exists(summary_path):
+            print(f"[INFO] Summary file not found: {summary_path}. Run download_data() first.")
+            return None
+        return pd.read_csv(summary_path, **read_csv_kwargs)
+
     def plot_station_locations(self):
         """
         Plot all station locations categorized into:
@@ -256,11 +260,11 @@ class GHCNhProcessor:
             return
 
         if self.stations_df is None or self.results_df is None:
-            print("Stations and results dataframes are required. Run the process first.")
-            # return
-            summary_dir = os.path.join(self.output_dir, "summaries")
-            self.stations_df = pd.read_csv(os.path.join(summary_dir, "stations_summary.csv"))
-            self.results_df = pd.read_csv(os.path.join(summary_dir, "download_results.csv"))
+            print("[INFO] Station/results dataframes are not loaded. Trying to load existing summaries.")
+            self.stations_df = self.load_summary_csv("stations_summary.csv")
+            self.results_df = self.load_summary_csv("download_results.csv")
+            if self.stations_df is None or self.results_df is None:
+                return
 
         # Categorize stations based on download results
         success_stations = self.results_df[self.results_df['Status'] == 'Success']['Station'].unique()
@@ -329,13 +333,13 @@ class GHCNhProcessor:
         self.ensure_directory_exists(summary_dir)
 
         if self.combined_availability_df is None:
-            print("Stations and results dataframes are required. Run the process first.")
-            # return
-            summary_dir = os.path.join(self.output_dir, "summaries")
-            self.combined_availability_df = pd.read_csv(
-                os.path.join(summary_dir, "availability_summary.csv"),
+            print("[INFO] Availability dataframe is not loaded. Trying to load existing summary.")
+            self.combined_availability_df = self.load_summary_csv(
+                "availability_summary.csv",
                 index_col='Variable'
             )
+            if self.combined_availability_df is None:
+                return
 
         if 'Variable' in self.combined_availability_df.columns:
             self.combined_availability_df = self.combined_availability_df.set_index('Variable')
