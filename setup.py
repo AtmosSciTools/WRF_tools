@@ -17,7 +17,8 @@ setup(
         'cdsapi',
         'netcdf4',
         'cartopy',
-        'matplotlib'
+        'matplotlib',
+        'wget'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

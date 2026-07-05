@@ -1139,7 +1139,3 @@ name=SOILCL4F
         interp_option = default:nearest_neighbor
         rel_path= default:soilgrids/texture_layer4/
 ===============================
-<<<<<<< HEAD
-=======
-
->>>>>>> local/local-test

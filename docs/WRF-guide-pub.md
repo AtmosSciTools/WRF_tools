@@ -71,13 +71,13 @@ tar xzvf cglc_modis_lcz_global.tar.gz
 
 
 ### Downloading Meteorological Data (ERA5)
-- **Register for an ERA5 account**  
+- **Register for an ERA5 account**
 From [this site](https://cds.climate.copernicus.eu/), click the button in the upper right ("Login-Register") to register and log in.
 
-- **API Setup**  
+- **API Setup**
 [CDSAPI setup](https://cds.climate.copernicus.eu/how-to-api)
 
-- **`ungrib.exe` in WPS assumes GRIB files**. When obtaining ERA5 from CDS, choose **format=grib**.  
+- **`ungrib.exe` in WPS assumes GRIB files**. When obtaining ERA5 from CDS, choose **format=grib**.
 > Note: It is common to combine single-level (surface) and pressure-level data in ERA5.
 
 - Python (CDS API) example:
@@ -157,7 +157,7 @@ request = {
   ],
   'data_format': 'grib',
   "download_format": "unarchived",
-  "area": [20, 90, 0, 110]  
+  "area": [20, 90, 0, 110]
 }
 target = 'download_surface_levels.grib'
 
@@ -195,7 +195,7 @@ These configurations are specified in a file called `namelist.wps`, which is loc
 ```ini
 &share
  wrf_core = 'ARW',
- max_dom = 2, 
+ max_dom = 2,
  start_date = "2025-01-01_00:00:00","2025-01-01_00:00:00",
  end_date = "2025-01-03_00:00:00","2025-01-03_00:00:00",
  interval_seconds = 10800
@@ -222,7 +222,7 @@ Set the domain for your area of interest and specify the path to "WPS_GEOG"..
  j_parent_start = 1, 3,
  e_we = 11, 10,
  e_sn = 9, 10,
- geog_data_res = "modis_landuse_20class_30s_with_lakes", "modis_landuse_20class_30s_with_lakes", 
+ geog_data_res = "modis_landuse_20class_30s_with_lakes", "modis_landuse_20class_30s_with_lakes",
  dx = 18000,
  dy = 18000,
  map_proj = "mercator",
@@ -234,43 +234,43 @@ Set the domain for your area of interest and specify the path to "WPS_GEOG"..
  geog_data_path = "/<path-to-WPS_GEOG>/WPS_GEOG",
 /
 ```
-- `parent_id`: Specifies the parent domain for each domain. The first value is always `1` for the outermost domain (no parent), and subsequent values indicate which domain acts as the parent for nested domains.  
+- `parent_id`: Specifies the parent domain for each domain. The first value is always `1` for the outermost domain (no parent), and subsequent values indicate which domain acts as the parent for nested domains.
   Example: `1, 1,` → Domain 1 has no parent, Domain 2's parent is Domain 1.
 
-- `parent_grid_ratio`: Ratio of grid spacing between the parent and child domains.  
+- `parent_grid_ratio`: Ratio of grid spacing between the parent and child domains.
   Example: `1, 3,` → Domain 1’s grid spacing ratio is 1 (reference), Domain 2 has a grid spacing three times finer than Domain 1.
 
-- `i_parent_start`: The starting i-index (west-east direction) of the child domain inside its parent domain.  
+- `i_parent_start`: The starting i-index (west-east direction) of the child domain inside its parent domain.
   Example: `1, 5,` → Domain 1 starts at index 1, Domain 2 starts at i-index 5 within Domain 1.
 
-- `j_parent_start`: The starting j-index (south-north direction) of the child domain inside its parent domain.  
+- `j_parent_start`: The starting j-index (south-north direction) of the child domain inside its parent domain.
   Example: `1, 3,` → Domain 1 starts at index 1, Domain 2 starts at j-index 3 within Domain 1.
 
-- `e_we`: Number of grid points in the west-east direction for each domain.  
+- `e_we`: Number of grid points in the west-east direction for each domain.
   Example: `11, 10,` → Domain 1 has 11 points, Domain 2 has 10 points.
 
-- `e_sn`: Number of grid points in the south-north direction for each domain.  
+- `e_sn`: Number of grid points in the south-north direction for each domain.
   Example: `9, 10,` → Domain 1 has 9 points, Domain 2 has 10 points.
 
-- `geog_data_res`: Specifies the geographical data resolution for each domain.  
+- `geog_data_res`: Specifies the geographical data resolution for each domain.
   Example: `"modis_landuse_20class_30s_with_lakes", "modis_landuse_20class_30s_with_lakes",` → Both domains use MODIS 20-class land use data at 30-second resolution with lakes.
 
-- `dx, dy`: Grid spacing in the x-direction (west-east) or y-direction (south-north) for the outermost domain (in meters).  
+- `dx, dy`: Grid spacing in the x-direction (west-east) or y-direction (south-north) for the outermost domain (in meters).
   Example: `18000` → 18 km resolution for Domain 1.
 
 
-- `map_proj`: The map projection used for the domains.  
+- `map_proj`: The map projection used for the domains.
   Example: `"mercator"` → Mercator projection.
 
-- `ref_lat`, `ref_lon`: Reference latitude, longitude for the projection center.   
+- `ref_lat`, `ref_lon`: Reference latitude, longitude for the projection center.
 
-- `truelat1`: First true latitude for projection (used in Lambert Conformal, Polar Stereographic, Mercator projections).  
+- `truelat1`: First true latitude for projection (used in Lambert Conformal, Polar Stereographic, Mercator projections).
   Example: `13.75`.
 
-- `truelat2`: Second true latitude (only used in Lambert Conformal projection). For Mercator, usually same as `truelat1`.  
+- `truelat2`: Second true latitude (only used in Lambert Conformal projection). For Mercator, usually same as `truelat1`.
   Example: `13.75`.
 
-- `stand_lon`: Standard longitude for projection (central meridian).  
+- `stand_lon`: Standard longitude for projection (central meridian).
   Example: `100.5`.
 
 
@@ -285,7 +285,7 @@ Set the domain for your area of interest and specify the path to "WPS_GEOG"..
 cp geogrid/GEOGRID.TBL.ARW_LCZ geogrid/GEOGRID.TBL.ARW
 ```
 
-We can use 
+We can use
 
 ```bash
 ./geogrid.exe
@@ -293,8 +293,8 @@ We can use
 ```
 
 
-> **[WRF Domain Wizard](https://wrfdomainwizard.net/) introduction**  
-> - A GUI tool to interactively set domain boundaries and resolution.  
+> **[WRF Domain Wizard](https://wrfdomainwizard.net/) introduction**
+> - A GUI tool to interactively set domain boundaries and resolution.
 > - Adjust `geog_data_path` etc. to match the output `namelist.wps`.
 
 <div style="page-break-after: always;"></div>
@@ -323,7 +323,7 @@ We can use
    ```bash
    cd $WPS_DIR
    # Vtable for ERA5 (Vtable.ECMWF)
-   ln -sf ungrib/Variable_Tables/Vtable.ECMWF Vtable 
+   ln -sf ungrib/Variable_Tables/Vtable.ECMWF Vtable
    ```
 
 3. **Link GRIB files**
@@ -361,7 +361,7 @@ We can use
 ### metgrid
 - horizontally interpolates the meteorological fields extracted by ungrib to the model grids defined by geogrid
   - Metgrid is also capable of combining two or more complementary data sets
-  - If surface fields are given in one data source(`ERA5S`) and upper-air data(`ERA5A`) are given in another, 
+  - If surface fields are given in one data source(`ERA5S`) and upper-air data(`ERA5A`) are given in another,
   the values assigned to the `fg_name` variable may look something like:
 
 ```ini
@@ -375,7 +375,7 @@ cd $WPS_DIR
 ./metgrid.exe
 # Output: met_em.d01.2025-01-01_00:00:00.nc etc.
 ```
-- Check `metgrid.log` for interpolation warnings (missing values etc.).  
+- Check `metgrid.log` for interpolation warnings (missing values etc.).
 - For multiple domains, d01, d01… will also be generated.
 
 <div style="page-break-after: always;"></div>
@@ -401,14 +401,14 @@ run_days=2
 run_hours=0
  run_minutes                         = 0,
  run_seconds                         = 0,
-start_year=2025, 2025, 
-start_month=1, 1, 
-start_day=1, 1, 
-start_hour=0, 0, 
-end_year=2025, 2025, 
-end_month=1, 1, 
-end_day=3, 3, 
-end_hour=0, 0, 
+start_year=2025, 2025,
+start_month=1, 1,
+start_day=1, 1,
+start_hour=0, 0,
+end_year=2025, 2025,
+end_month=1, 1,
+end_day=3, 3,
+end_hour=0, 0,
  interval_seconds                    = 10800
 input_from_file=.true., .true.
 history_interval=60,60,
@@ -429,7 +429,7 @@ frames_per_outfile=24,24,
 
 ```ini
  &domains
-time_step=108 
+time_step=108
 ...
 max_dom=2,
 e_we = 11, 10,
@@ -453,7 +453,7 @@ smooth_option                       = 0
 ```
 
 #### Physics scheme options
-- In WRF, many **physical parameterization schemes** are available to represent processes that cannot be explicitly resolved by the governing equations (e.g., radiation, cloud, land surface processes, and other subgrid-scale phenomena). 
+- In WRF, many **physical parameterization schemes** are available to represent processes that cannot be explicitly resolved by the governing equations (e.g., radiation, cloud, land surface processes, and other subgrid-scale phenomena).
 
   More details in [WRF Physics](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html).
 
@@ -481,13 +481,13 @@ smooth_option                       = 0
 ```
 
 #### Dynamics options
-- WRF (WRF-ARW) model uses a dynamical solver to perform time and space integration of the equations of motion. 
+- WRF (WRF-ARW) model uses a dynamical solver to perform time and space integration of the equations of motion.
 
   More details in [WRF Dynamics](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/dynamics.html).
 
 ```ini
  &dynamics
- hybrid_opt                          = 2, 
+ hybrid_opt                          = 2,
  w_damping                           = 0,
  diff_opt                            = 2,      2,
  km_opt                              = 4,      4,
@@ -536,7 +536,7 @@ ln -sf $WPS_DIR/met_em.d0* .
 ./real.exe
 # If successful, wrfbdy_d01 and wrfinput_d01 (and d02... if nested) will be generated
 ```
-- On failure, check `rsl.error.0000`. 
+- On failure, check `rsl.error.0000`.
 
 ### wrf.exe
 - **Serial run**
