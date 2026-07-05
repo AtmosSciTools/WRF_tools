@@ -19,3 +19,4 @@ dependencies:
 
   - pip:
       - git+https://github.com/dniloash/Pywinter
+      - git+https://github.com/AtmosSciTools/WRF_tools.git@v1.1.1
