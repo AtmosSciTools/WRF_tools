@@ -354,7 +354,7 @@ class WRFProcessor:
 
     def run_wrf_process(self, executable, mpi=False, num_cores=4):
         cmd = ['mpirun', '-np', str(num_cores), executable] if mpi else [executable]
-        subprocess.run(cmd, cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(cmd, cwd=self.run_dir, check=True)
 
 
     def run_wrf(self):
