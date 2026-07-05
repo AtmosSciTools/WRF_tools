@@ -46,14 +46,14 @@ class WRFProcessor:
     def copy_wrf_run_files(self):
         source_dir = os.path.join(self.paths['wrfdir'], 'run')
         destination_dir = self.run_dir
-        
+
         for file_name in os.listdir(source_dir):
             if file_name == 'namelist.input':
                 continue
             full_file_name = os.path.join(source_dir, file_name)
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, destination_dir)
-                
+
     def modify_namelist(self, namelist_path_in, namelist_path_out, replacements):
         with open(namelist_path_in, 'r') as file:
             lines = file.readlines()
@@ -67,7 +67,7 @@ class WRFProcessor:
     def generate_date_range(self):
         start_date = self.run_period['start_date']
         end_date = self.run_period['end_date']
-        return [(datetime.strptime(start_date, '%Y-%m-%d %H') + timedelta(days=i)).strftime('%Y%m%d') 
+        return [(datetime.strptime(start_date, '%Y-%m-%d %H') + timedelta(days=i)).strftime('%Y%m%d')
                 for i in range((datetime.strptime(end_date, '%Y-%m-%d %H') - datetime.strptime(start_date, '%Y-%m-%d %H')).days + 1)]
 
     def copy_other_geotbl(self):
@@ -94,7 +94,7 @@ class WRFProcessor:
         e_we_ini = self.domain['e_we_ini']
         e_sn_ini = self.domain['e_sn_ini']
 
-        e_we = [] 
+        e_we = []
         e_sn = []
         e_we.append(e_we_ini[0])
         e_sn.append(e_sn_ini[0])
@@ -112,7 +112,7 @@ class WRFProcessor:
             e_sn.append(ny2[js2] + 1)
             ips.append(ii[is2] + 1)
             jps.append(jj[js2] + 1)
-        
+
         return (', '.join(np.asarray(ips).astype('int').astype('str')),
                 ', '.join(np.asarray(jps).astype('int').astype('str')),
                 ', '.join(np.asarray(e_we).astype('int').astype('str')),
@@ -124,7 +124,7 @@ class WRFProcessor:
         lon = self.domain_center['lon']
         start_date = self.run_period['start_date']
         end_date = self.run_period['end_date']
-        parent_grid_ratio = self.domain['parent_grid_ratio']
+        parent_grid_ratio = tuple(self.domain['parent_grid_ratio'][:max_dom])
         dx = self.domain['dx']
         dy = self.domain['dy']
         #e_we_ini = self.domain['e_we_ini']
@@ -135,16 +135,16 @@ class WRFProcessor:
         vd['start_date'] = ','.join([f'"{start_date.replace(" ", "_")}:00:00"']*max_dom)
         vd['end_date'] = ','.join([f'"{end_date.replace(" ", "_")}:00:00"']*max_dom)
         # vd['geog_data_res'] = '"modis_landuse_20class_30s_with_lakes", ' * max_dom
-        
-        vd['parent_id'] = '1,1,2'  
+
+        vd['parent_id'] = ','.join(['1'] + [str(i) for i in range(1, max_dom)])
         vd['parent_grid_ratio'] = ','.join(map(str, parent_grid_ratio))
         vd['dx'] = str(dx)
         vd['dy'] = str(dy)
         vd['i_parent_start'], vd['j_parent_start'], vd['e_we'], vd['e_sn'] = self.set_domains()
-        
+
         vd['ref_lat'], vd['ref_lon'] = str(lat), str(lon)
 
-        if float(vd['ref_lat']) > 30. or float(vd['ref_lat']) < -30.: 
+        if float(vd['ref_lat']) > 30. or float(vd['ref_lat']) < -30.:
             print('---high latitude: ', vd['ref_lat'])
             vd['map_proj']  = '"lambert"'
             vd['truelat1'], vd['truelat2']  = vd['ref_lat'], vd['ref_lat']
@@ -153,8 +153,8 @@ class WRFProcessor:
             print('---low latitude: ', vd['ref_lat'])
             vd['map_proj'] = '"mercator"'
             vd['truelat1'], vd['truelat2']  = vd['ref_lat'], vd['ref_lat']
-            vd['stand_lon'] = vd['ref_lon']  
-        
+            vd['stand_lon'] = vd['ref_lon']
+
         return vd
 
     def update_namelist_time_domain_from_wps(self):
@@ -169,7 +169,7 @@ class WRFProcessor:
         dy = int(vdwps['dy'].split(',')[0])
         parent_grid_ratio = [int(x) for x in vdwps['parent_grid_ratio'].split(',') if x.strip().lower() != '']
 
-        st, en = [pd.to_datetime(vdwps[a].split(',')[0].strip().replace('"', '').replace("'", ""), format='%Y-%m-%d_%H:%M:%S') 
+        st, en = [pd.to_datetime(vdwps[a].split(',')[0].strip().replace('"', '').replace("'", ""), format='%Y-%m-%d_%H:%M:%S')
               for a in ['start_date', 'end_date']]
 
         vd = {
@@ -198,28 +198,28 @@ class WRFProcessor:
         parent_id[0] = 1
         vd['parent_id'] = ','.join(parent_id.astype('str'))
         vd['grid_id'] = ','.join(np.arange(1, max_dom + 1).astype('str'))
-        
+
         vd['dx'] = ', '.join(dxs.astype('str'))
         vd['dy'] = ', '.join(dys.astype('str'))
 
         print(vd['dx'] )
-        
+
         e_vert = vdinput['e_vert'].split(',')[0]
         vd['e_vert'] = ', '.join([e_vert] * max_dom)
         vd['parent_time_step_ratio'] = ', '.join(map(str, parent_grid_ratio))
         vd['time_step'] = str( int(dxs[0] * 6 / 1000))
-        
+
         vd['feedback'] = '0'
         vd['input_from_file'] = ', '.join(['.true.']*max_dom)
 
         for k, v in zip(['history_interval', 'frames_per_outfile'], ['60', '24']):
             vd[k] = (v+',')*max_dom
-        
+
         for il, l in enumerate(win):
             k = l.split('=')[0].strip()
             if k in vd.keys():
                 win[il] = k+'='+vd[k]+'\n'
-        
+
         open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(win))
 
     def adjust_domain_options(self, namelist_path):
@@ -286,7 +286,7 @@ class WRFProcessor:
             print(e)
             print('Errors: No met_em files')
             return {}
-            
+
 
     def run_ungrib_era5(self, date_range):
         source_file = os.path.join(self.run_dir, 'ungrib/Variable_Tables/Vtable.ECMWF')
@@ -296,10 +296,10 @@ class WRFProcessor:
         if os.path.islink(target_link) or os.path.exists(target_link): os.remove(target_link)
         os.symlink(source_file, target_link)
         os.chdir(original_dir)
-        
+
         prefixes = ['ERA5A', 'ERA5S']
         levels = ['pressure', 'surface']
-        
+
         for i in range(2):
             prefix = prefixes[i]
             level = levels[i]
@@ -316,7 +316,7 @@ class WRFProcessor:
 
         replacements = {'fg_name' : f'{fg_name}'}
 
-        self.modify_namelist(os.path.join(self.run_dir, 'namelist.wps'), os.path.join(self.run_dir, 'namelist.wps'), replacements) 
+        self.modify_namelist(os.path.join(self.run_dir, 'namelist.wps'), os.path.join(self.run_dir, 'namelist.wps'), replacements)
 
 
     def run_wrf_process(self, executable, mpi=False, num_cores=4):
@@ -335,42 +335,42 @@ class WRFProcessor:
         #e_sn_ini = self.domain['e_sn_ini']
         #lat = self.domain_center['lat']
         #lon = self.domain_center['lon']
-        
+
         namelist_wps_out = os.path.join(self.run_dir, 'namelist.wps')
         namelist_input_out = os.path.join(self.run_dir, 'namelist.input')
-        
+
         date_range = self.generate_date_range()
 
         self.setup_directories()
         self.copy_wrf_run_files()
 
-        self.modify_namelist(self.paths['namelist_wps'], namelist_wps_out, {}) 
-        self.modify_namelist(self.paths['namelist_input'], namelist_input_out, {}) 
-        
+        self.modify_namelist(self.paths['namelist_wps'], namelist_wps_out, {})
+        self.modify_namelist(self.paths['namelist_input'], namelist_input_out, {})
+
         self.adjust_domain_options(namelist_wps_out)
         self.adjust_domain_options(namelist_input_out)
 
         replacements = self.generate_namelist_parameters()
         replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
-        self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements) 
+        self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements)
         if self.other_GEOTBL:
             self.copy_other_geotbl()
 
         self.run_wrf_process('./geogrid.exe')
         print('---geogrid done')
-        
+
         self.run_ungrib_era5(date_range)
         print('---ungrib done')
-        
+
         self.run_wrf_process('./metgrid.exe')
         print('---metgrid done')
-        
+
         self.update_namelist_time_domain_from_wps()
-        
+
         replacements = self.get_met_em_info()
-        self.modify_namelist(namelist_input_out, namelist_input_out, replacements) 
-        
+        self.modify_namelist(namelist_input_out, namelist_input_out, replacements)
+
         self.run_wrf_process('./real.exe')
         print('---real done')
 
@@ -402,31 +402,29 @@ if __name__ == "__main__":
         'lon': 100.50
     }
 
-    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3), 
-            'dx' : 18000, 'dy' : 18000, 
+    domain = { 'max_dom': 3, 'parent_grid_ratio' : (1,3,3),
+            'dx' : 18000, 'dy' : 18000,
             'e_we_ini' : (100, 100, 100),
             'e_sn_ini' : (100, 100, 100) }
-    
+
     setting = "bem_mlucm_default"
-    
+
     paths = {
         'wpsdir': os.environ.get('WPS'),
         'wrfdir': os.environ.get('WRF'),
         'geogdir': os.environ.get('WPS_GEOG'),
-        'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'), 
+        'renaldir': os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/'),
         'namelist_wps' : os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.wps"),
         'namelist_input': os.path.join(os.environ.get('WRF_TOOLS'), "namelists",f"{setting}_namelist.input")
     }
 
-    
+
     base_dir = os.environ.get('SIMULATION')
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None)
     wrf_processor.run_wrf()
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
