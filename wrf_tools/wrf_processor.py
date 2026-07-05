@@ -89,8 +89,7 @@ class WRFProcessor:
         try:
             yield
         finally:
-            with open(file_path, 'w') as file:
-                file.write(original_content)
+            self.write_text_atomic(file_path, original_content)
 
     def generate_date_range(self):
         start_date = self.run_period['start_date']
@@ -101,11 +100,12 @@ class WRFProcessor:
     def copy_other_geotbl(self):
         """
         Copy specified GEOGRID.TBL variant (e.g. GEOGRID.TBL.ARW_LCZ)
-        to rundir/geogrid/GEOGRID.TBL if it exists.
+        to self.run_dir/geogrid/GEOGRID.TBL if it exists.
 
-        Parameters:
-            rundir (str): Base run directory
-            other_GEOTBL (str): e.g. "GEOGRID.TBL.ARW_LCZ"
+        Uses:
+            self.run_dir (str): Base run directory.
+            self.other_GEOTBL (str): GEOGRID.TBL variant filename under
+                self.run_dir/geogrid, e.g. "GEOGRID.TBL.ARW_LCZ".
         """
         src = os.path.join(self.run_dir, "geogrid", self.other_GEOTBL)
         dst = os.path.join(self.run_dir, "geogrid", "GEOGRID.TBL")
@@ -251,7 +251,8 @@ class WRFProcessor:
         open(os.path.join(self.run_dir, 'namelist.input'), 'w').write(''.join(win))
 
     def adjust_domain_options(self, namelist_path):
-        lines = open(namelist_path).readlines()
+        with open(namelist_path, 'r') as file:
+            lines = file.readlines()
         max_dom = self.domain['max_dom']
 
         def adjust_values(line, max_dom):
