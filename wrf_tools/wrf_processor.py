@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import glob
 import re
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
@@ -10,7 +11,19 @@ from collections import OrderedDict
 import pandas as pd
 
 class WRFProcessor:
-    def __init__(self, run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None):
+    def __init__(
+        self,
+        run_period,
+        domain_center,
+        domain,
+        paths,
+        run_dir,
+        num_process=4,
+        run_wrf=True,
+        other_GEOTBL=None,
+        force=None,
+        modify_namelists=True,
+    ):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
@@ -20,6 +33,7 @@ class WRFProcessor:
         self.other_GEOTBL = other_GEOTBL
         self.force = force
         self.run_wrf_flag = run_wrf
+        self.modify_namelists = modify_namelists
 
     def setup_directories(self):
         wpsdir = self.paths['wpsdir']
@@ -63,6 +77,20 @@ class WRFProcessor:
                     lines[i] = f' {key} = {value},\n'
         with open(namelist_path_out, 'w') as file:
             file.writelines(lines)
+
+    def copy_namelists(self, namelist_wps_out, namelist_input_out):
+        shutil.copy2(self.paths['namelist_wps'], namelist_wps_out)
+        shutil.copy2(self.paths['namelist_input'], namelist_input_out)
+
+    @contextmanager
+    def preserved_file(self, file_path):
+        with open(file_path, 'r') as file:
+            original_content = file.read()
+        try:
+            yield
+        finally:
+            with open(file_path, 'w') as file:
+                file.write(original_content)
 
     def generate_date_range(self):
         start_date = self.run_period['start_date']
@@ -299,24 +327,28 @@ class WRFProcessor:
 
         prefixes = ['ERA5A', 'ERA5S']
         levels = ['pressure', 'surface']
+        namelist_wps = os.path.join(self.run_dir, 'namelist.wps')
 
         for i in range(2):
             prefix = prefixes[i]
             level = levels[i]
-            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
-            reanal_files = [os.path.join(self.paths['renaldir'], f'era5_ungrib_{level}_levels_{date}.grib')
-                            for date in date_range  ]
-            subprocess.run(['./link_grib.csh'] + reanal_files, cwd=self.run_dir, check=True)
-            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir, prefix + '*')), check=True)
-            self.modify_namelist(os.path.join(self.run_dir, 'namelist.wps'), os.path.join(self.run_dir, 'namelist.wps'), {'prefix': f'"{prefix}"'})
-            subprocess.run(['./ungrib.exe'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
+            preserve_namelist = self.preserved_file(namelist_wps) if not self.modify_namelists else nullcontext()
+            with preserve_namelist:
+                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
+                reanal_files = [os.path.join(self.paths['renaldir'], f'era5_ungrib_{level}_levels_{date}.grib')
+                                for date in date_range  ]
+                subprocess.run(['./link_grib.csh'] + reanal_files, cwd=self.run_dir, check=True)
+                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir, prefix + '*')), check=True)
+                self.modify_namelist(namelist_wps, namelist_wps, {'prefix': f'"{prefix}"'})
+                subprocess.run(['./ungrib.exe'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
 
         fg_name = ', '.join([f'"{prefix}"' for prefix in prefixes])
 
         replacements = {'fg_name' : f'{fg_name}'}
 
-        self.modify_namelist(os.path.join(self.run_dir, 'namelist.wps'), os.path.join(self.run_dir, 'namelist.wps'), replacements)
+        if self.modify_namelists:
+            self.modify_namelist(namelist_wps, namelist_wps, replacements)
 
 
     def run_wrf_process(self, executable, mpi=False, num_cores=4):
@@ -344,16 +376,16 @@ class WRFProcessor:
         self.setup_directories()
         self.copy_wrf_run_files()
 
-        self.modify_namelist(self.paths['namelist_wps'], namelist_wps_out, {})
-        self.modify_namelist(self.paths['namelist_input'], namelist_input_out, {})
+        self.copy_namelists(namelist_wps_out, namelist_input_out)
 
-        self.adjust_domain_options(namelist_wps_out)
-        self.adjust_domain_options(namelist_input_out)
+        if self.modify_namelists:
+            self.adjust_domain_options(namelist_wps_out)
+            self.adjust_domain_options(namelist_input_out)
 
-        replacements = self.generate_namelist_parameters()
-        replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
+            replacements = self.generate_namelist_parameters()
+            replacements.update({'geog_data_path' : f'"{self.paths["geogdir"]}"'})
 
-        self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements)
+            self.modify_namelist(namelist_wps_out, namelist_wps_out, replacements)
         if self.other_GEOTBL:
             self.copy_other_geotbl()
 
@@ -366,10 +398,11 @@ class WRFProcessor:
         self.run_wrf_process('./metgrid.exe')
         print('---metgrid done')
 
-        self.update_namelist_time_domain_from_wps()
+        if self.modify_namelists:
+            self.update_namelist_time_domain_from_wps()
 
-        replacements = self.get_met_em_info()
-        self.modify_namelist(namelist_input_out, namelist_input_out, replacements)
+            replacements = self.get_met_em_info()
+            self.modify_namelist(namelist_input_out, namelist_input_out, replacements)
 
         self.run_wrf_process('./real.exe')
         print('---real done')
@@ -423,8 +456,6 @@ if __name__ == "__main__":
     run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
     wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None)
     wrf_processor.run_wrf()
-
-
 
 
 

@@ -154,9 +154,39 @@ paths = {
 
 base_dir = os.environ.get('SIMULATION')
 run_dir = os.path.join(base_dir, 'Run_WRF', domain_center['id'], setting)
-wrf_processor = WRFProcessor(run_period, domain_center, domain, paths, run_dir, num_process=4, run_wrf=True, other_GEOTBL=None, force=None)
+wrf_processor = WRFProcessor(
+    run_period,
+    domain_center,
+    domain,
+    paths,
+    run_dir,
+    num_process=4,
+    run_wrf=True,
+    other_GEOTBL=None,
+    force=None,
+)
 wrf_processor.run_wrf()
 ```
+
+If the namelist files are already finalized and should be used as-is, disable automatic namelist edits:
+
+```python
+wrf_processor = WRFProcessor(
+    run_period,
+    domain_center,
+    domain,
+    paths,
+    run_dir,
+    num_process=4,
+    run_wrf=True,
+    other_GEOTBL=None,
+    force=None,
+    modify_namelists=False,
+)
+wrf_processor.run_wrf()
+```
+
+In this mode, `paths['namelist_wps']` and `paths['namelist_input']` are copied to `run_dir` without domain, time, or metgrid-level updates. The namelist files must already be internally consistent with the selected run period, domain, ERA5 files, WPS geography path, and WRF physics settings. For the current ERA5 workflow, `namelist.wps` should already contain a `fg_name` setting compatible with the generated `ERA5A` and `ERA5S` intermediate files.
 
 
 
@@ -199,6 +229,7 @@ wrf_processor.run_wrf()
 - `run_wrf` (default: `True`): If `False`, stop after `real.exe` and skip execution of `wrf.exe`.
 - `other_GEOTBL` (default: `None`): Optional GEOGRID table variant filepath copied to `geogrid/GEOGRID.TBL`.
 - `force` (default: `None`): If set to `True`, delete an existing `run_dir` and recreate it before processing.
+- `modify_namelists` (default: `True`): If `False`, copy predefined namelists as-is and skip automatic namelist edits. During ERA5 ungrib only, `prefix` is temporarily changed for each ungrib pass and then restored.
 
 - **Output data**
 
