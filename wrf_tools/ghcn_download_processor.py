@@ -1,74 +1,29 @@
-# Global constants for file paths and base URL
-#LIST_ISD_HISTORY = 'station_info/list-isd-history_2024.csv'  # Path to the station metadata CSV file
-
 import os
-import sys
+import time
 
 LIST_ISD_HISTORY = os.path.join(os.path.dirname(__file__), "data", "ghcnh-station-list.csv")
 BASE_URL = 'https://www.ncei.noaa.gov/oa/global-historical-climatology-network/hourly/access/by-year/'
 
-
-
-# -----------------------------
-# Library Imports and Checks
-# -----------------------------
-# Required libraries (essential for code execution)
-required_libraries = {
-    "pandas": "pandas",
-    "numpy": "numpy",
-    "wget": "wget",
-    "matplotlib": "matplotlib"
-}
-
-# Optional libraries (enhance functionality but not critical)
-optional_libraries = {
-    "seaborn": "seaborn",       # For plotting heatmaps of data availability
-    "cartopy": "cartopy"  # For plotting station locations on a map
-}
-
-# Check for missing required libraries
-missing_required = []
-for module, package in required_libraries.items():
-    try:
-        __import__(module)
-    except ImportError:
-        missing_required.append(package)
-
-# Exit if any required libraries are missing
-if missing_required:
-    print("\n[ERROR] The following required libraries are missing:")
-    for lib in missing_required:
-        print(f" - {lib}")
-    print("\nPlease install them using:")
-    print(f"pip install {' '.join(missing_required)}")
-    sys.exit(1)
-
-# Import required libraries after successful check
 import pandas as pd
 import numpy as np
 import wget
 import matplotlib.pyplot as plt
 
-# Check and import optional libraries
 try:
     import seaborn as sns
     seaborn_available = True
 except ImportError:
+    sns = None
     seaborn_available = False
-    print("[WARNING] seaborn is not installed. Availability heatmaps will be skipped.")
 
 try:
     import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
     cartopy_available = True
 except ImportError:
+    ccrs = None
+    cfeature = None
     cartopy_available = False
-    print("[WARNING] cartopy is not installed. Station location plotting will be skipped.")
-
-
-import xarray as xr
-import time
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
 
 # -----------------------------
 # GHCNhProcessor Class Definition
@@ -136,7 +91,7 @@ class GHCNhProcessor:
         Returns:
             pd.DataFrame: Availability matrix showing the proportion of available data.
         """
-        
+
         try:
             d = pd.read_csv(fil, index_col=2, parse_dates=True, sep="|")
 
@@ -167,10 +122,8 @@ class GHCNhProcessor:
             full_index = pd.date_range(start=start_date, end=end_date, freq='1h')[:-1]
 
             # Use reindex to add missing times, values automatically become NaN
-            d = d.reindex(full_index) 
+            d = d.reindex(full_index)
 
-            # Calculate availability proportion per variable
-            total_days = 366 if pd.Timestamp(year=year, month=12, day=31).is_leap_year else 365
             availability_data = {
                 'Variable': d.columns,
                 year: [(d[d.index.year == year][var].count() / len(d[d.index.year == year][var])) for var in d.columns]
@@ -178,10 +131,10 @@ class GHCNhProcessor:
             availability_matrix = pd.DataFrame(availability_data).set_index('Variable')
 
             # Save processed data
-            ofile = os.path.splitext(ofile)[0] + ".csv"
+            output_name = os.path.splitext(ofile or os.path.basename(fil))[0] + ".csv"
 
             self.ensure_directory_exists(odir)
-            output_file = os.path.join(odir, ofile if ofile else os.path.basename(fil))
+            output_file = os.path.join(odir, output_name)
             d.to_csv(output_file, float_format='%.2f')
 
             return availability_matrix
@@ -214,7 +167,7 @@ class GHCNhProcessor:
             # if year < station_start.year or (station_end.year != 2021 and year > station_end.year):
             #     results.append({'Station': station_id, 'Year': year, 'Status': 'Not Expected'})
             #     continue
-            
+
             filename = f"GHCNh_{station_id}_{year}.psv"
             # output filename to store as csv file
             ofile = os.path.splitext(filename)[0] + ".csv"
@@ -423,6 +376,7 @@ class GHCNhProcessor:
 # Example Usage
 # -----------------------------
 if __name__ == "__main__":
+    import xarray as xr
 
     # %%
 
@@ -449,11 +403,3 @@ if __name__ == "__main__":
     # processor.download_data()                    # Run data download and processing
     # processor.plot_station_locations() # Plot station locations with categories
     processor.plot_availability_heatmaps()  # Plot heatmaps (if seaborn is available)
-    
-    
-    
-    
-    
-    
-    
-    
