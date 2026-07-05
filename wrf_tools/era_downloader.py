@@ -42,17 +42,17 @@ class ERA5DataDownloader:
         start_date = datetime.strptime(self.run_period['start_date'], '%Y-%m-%d %H')
         end_date = datetime.strptime(self.run_period['end_date'], '%Y-%m-%d %H')
 
-        if end_date.hour > 0:
-            end_date += timedelta(days=1)
+        start_day = start_date.date()
+        end_day = end_date.date()
 
-        return [(start_date + timedelta(days=i)).strftime('%Y-%m-%d') 
-                for i in range((end_date - start_date).days)]
+        return [(start_day + timedelta(days=i)).strftime('%Y-%m-%d')
+                for i in range((end_day - start_day).days + 1)]
 
     def download_pressure_level_data(self, date, area):
         """Download ERA5 pressure-level data for a specific date."""
         year, month, day = date.split('-')
         pressure_file = os.path.join(self.download_dir, f'era5_ungrib_pressure_levels_{year}{month}{day}.grib')
-        
+
         self.client.retrieve(
             'reanalysis-era5-pressure-levels',
             {
@@ -109,9 +109,9 @@ class ERA5DataDownloader:
         """Main method to download ERA5 pressure-level and surface-level data."""
         bounds = self.get_rectangle_bounds()
         area = [ bounds['north'], bounds['west'], bounds['south'], bounds['east']]
-        
+
         print(f"Downloading data for area: {area}")
-        
+
         for date in self.generate_date_range():
             print(f"Downloading data for {date}...")
             self.download_pressure_level_data(date, area)
