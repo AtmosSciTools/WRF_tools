@@ -3,14 +3,14 @@
 A Python library to process WRF simulations and download ERA5 data.
 
 ## Installation
-If you want to use [wrf-python](https://wrf-python.readthedocs.io/en/latest/index.html), we recommend using [conda(miniconda)](https://www.anaconda.com/docs/getting-started/miniconda/install#using-miniconda-in-a-commercial-setting) or [minforge](https://conda-forge.org/download/) for installation.
+If you want to use [wrf-python](https://wrf-python.readthedocs.io/en/latest/index.html), we recommend using [conda (Miniconda)](https://www.anaconda.com/docs/getting-started/miniconda/install#using-miniconda-in-a-commercial-setting) or [Miniforge](https://conda-forge.org/download/) for installation.
 
 You can install necessary environments from environment.yml
 ```bash
 conda env create -f environment.yml
 ```
 
-- Manualy installation.
+- Manual installation.
 
 ```bash
 conda install -c conda-forge wrf-python
