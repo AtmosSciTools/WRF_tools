@@ -3,7 +3,6 @@ import shutil
 import subprocess
 import glob
 import re
-from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
@@ -81,15 +80,6 @@ class WRFProcessor:
     def copy_namelists(self, namelist_wps_out, namelist_input_out):
         shutil.copy2(self.paths['namelist_wps'], namelist_wps_out)
         shutil.copy2(self.paths['namelist_input'], namelist_input_out)
-
-    @contextmanager
-    def preserved_file(self, file_path):
-        with open(file_path, 'r') as file:
-            original_content = file.read()
-        try:
-            yield
-        finally:
-            self.write_text_atomic(file_path, original_content)
 
     def generate_date_range(self):
         start_date = self.run_period['start_date']
@@ -330,19 +320,25 @@ class WRFProcessor:
         levels = ['pressure', 'surface']
         namelist_wps = os.path.join(self.run_dir, 'namelist.wps')
 
+        if not self.modify_namelists:
+            with open(namelist_wps, 'r') as file:
+                original_namelist_wps = file.read()
+
         for i in range(2):
             prefix = prefixes[i]
             level = levels[i]
-            preserve_namelist = self.preserved_file(namelist_wps) if not self.modify_namelists else nullcontext()
-            with preserve_namelist:
-                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
-                reanal_files = [os.path.join(self.paths['renaldir'], f'era5_ungrib_{level}_levels_{date}.grib')
-                                for date in date_range  ]
-                subprocess.run(['./link_grib.csh'] + reanal_files, cwd=self.run_dir, check=True)
-                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir, prefix + '*')), check=True)
-                self.modify_namelist(namelist_wps, namelist_wps, {'prefix': f'"{prefix}"'})
-                subprocess.run(['./ungrib.exe'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
+            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
+            reanal_files = [os.path.join(self.paths['renaldir'], f'era5_ungrib_{level}_levels_{date}.grib')
+                            for date in date_range  ]
+            subprocess.run(['./link_grib.csh'] + reanal_files, cwd=self.run_dir, check=True)
+            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir, prefix + '*')), check=True)
+            self.modify_namelist(namelist_wps, namelist_wps, {'prefix': f'"{prefix}"'})
+            subprocess.run(['./ungrib.exe'], cwd=self.run_dir, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(['rm', '-f'] + glob.glob(os.path.join(self.run_dir,   'GRIB*')), check=True)
+
+        if not self.modify_namelists:
+            with open(namelist_wps, 'w') as file:
+                file.write(original_namelist_wps)
 
         fg_name = ', '.join([f'"{prefix}"' for prefix in prefixes])
 
