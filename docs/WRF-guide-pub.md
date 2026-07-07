@@ -24,7 +24,7 @@ export JASPERINC=$DIR/grib2/include
 
 - Confirm that `WRF/main/real.exe`, `WRF/main/wrf.exe`, `WPS/geogrid.exe`, `WPS/ungrib.exe`, and `WPS/metgrid.exe` exist.
 
-### Downloading Geographic Data (GEOG)
+### 0. Downloading Geographic Data (GEOG)
 
 - Obtain the WPS geographic data ([Geographical Input Data](https://www2.mmm.ucar.edu/wrf/users/download/get_sources_wps_geog.html)) and decide the extraction destination (example: `/data/`).
 - A directory named `WPS_GEOG` will be created.
@@ -58,7 +58,7 @@ WPS_GEOG/
 └── varsso_5m
 ```
 
-### Optional Dataset
+#### 0.1 Optional Dataset
 - **WUDAPT LCZ**
 
 ```bash
@@ -67,10 +67,31 @@ cd $WPS_GEOG
 wget https://www2.mmm.ucar.edu/wrf/src/wps_files/cglc_modis_lcz_global.tar.gz
 tar xzvf cglc_modis_lcz_global.tar.gz
 ```
+### 1. Creating a Case Working Directory
 
+Do not run a case directly in the WRF/WPS installation directories. Prepare a case-specific `RUN_DIR`, then copy the required WPS executables, WPS directories, WRF run files, and namelists into it.
 
+```bash
+export WPS=/path/to/WPS
+export WRF=/path/to/WRF
+export WPS_GEOG=/path/to/WPS_GEOG
+export REANAL=/path/to/reanalysis
+export SIMULATION=/path/to/simulation
+export RUN_DIR="$SIMULATION/case01"
 
-### Downloading Meteorological Data (ERA5)
+mkdir -p "$RUN_DIR"
+cd "$RUN_DIR"
+
+cp -r "$WPS/geogrid" "$WPS/ungrib" "$WPS/metgrid" .
+cp "$WPS/geogrid.exe" "$WPS/ungrib.exe" "$WPS/metgrid.exe" "$WPS/link_grib.csh" .
+
+find "$WRF/run" -maxdepth 1 \( -type f -o -type l \) ! -name "namelist.input" -exec cp -L {} . \;
+cp "$WRF/main/real.exe" "$WRF/main/wrf.exe" .
+```
+
+Use a separate `RUN_DIR` for each experiment or sensitivity case.
+
+### 2. Downloading Meteorological Data (ERA5)
 - **Register for an ERA5 account**
 From [this site](https://cds.climate.copernicus.eu/), click the button in the upper right ("Login-Register") to register and log in.
 
@@ -170,6 +191,22 @@ client.retrieve(dataset, request, target)
 
 ## Overall Flowchart
 
+Running WRF/WPS is a workflow that combines geographic data, meteorological forcing data, namelists, and executables in the correct order. `WPS_GEOG` is shared across cases and usually only needs to be downloaded once. `RUN_DIR` should be prepared separately for each case.
+
+| Step | Process |
+|:---:|:---|
+| 0 | Download and place `WPS_GEOG` |
+| 1 | Confirm WRF/WPS locations and prepare a case-specific `RUN_DIR` |
+| 2 | Prepare meteorological forcing data |
+| 3 | Set simulation period, domains, and geographic data path in `namelist.wps` |
+| 4 | Run `geogrid.exe` |
+| 5 | Run `ungrib.exe` |
+| 6 | Run `metgrid.exe` |
+| 7 | Configure `namelist.input` |
+| 8 | Run `real.exe` |
+| 9 | Run `wrf.exe` |
+| 10 | Check and visualize `wrfout` |
+
 ![Overall diagram](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/_images/wps_program_flow.png)
 
 [(c) The WRF Preprocessing System (WPS)](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/wps.html)
@@ -190,7 +227,7 @@ These configurations are specified in a file called `namelist.wps`, which is loc
 - [Details of WPS setting](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/wps.html)
 
 
-### Time and Domain Settings
+### 3. Time and Domain Settings
 - **Edit namelist.wps**
 ```ini
 &share
@@ -210,7 +247,7 @@ These configurations are specified in a file called `namelist.wps`, which is loc
 
 ---
 
-### geogrid
+### 4. geogrid
 - **Edit namelist.wps**
 Set the domain for your area of interest and specify the path to "WPS_GEOG"..
 
@@ -304,7 +341,7 @@ We can use
 ---
 
 
-### ungrib
+### 5. ungrib
 
 - extracts meteorological fields from GRIB-formatted files
 - ERA5 data is categorized into single-level (surface) and pressure-level datasets, so ungrib must be applied to each dataset individually.
@@ -358,7 +395,7 @@ We can use
 
 ---
 
-### metgrid
+### 6. metgrid
 - horizontally interpolates the meteorological fields extracted by ungrib to the model grids defined by geogrid
   - Metgrid is also capable of combining two or more complementary data sets
   - If surface fields are given in one data source(`ERA5S`) and upper-air data(`ERA5A`) are given in another,
@@ -384,10 +421,10 @@ cd $WPS_DIR
 
 ## WRF
 
-### Settings
+### 7. Settings
 For details: [README.namelist](https://github.com/wrf-model/WRF/blob/master/run/README.namelist)
 
-#### Time settings
+#### 7.1 Time settings
 - Set it to match the period specified in **namelist.wps**.
   For `run_day` and `run_hour`, write the number of days corresponding to that period.
   > if the total run length is 36 hrs, you may set run_days = 1, and run_hours = 12, or run_days = 0, and run_hours = 36.
@@ -417,7 +454,7 @@ frames_per_outfile=24,24,
 /
 ```
 
-#### Domain setting
+#### 7.2 Domain setting
 - Set it to match the domain specified in **namelist.wps**.
   `time_step`: recommend 6*dx (in km)
   `e_vert`: end index in z (vertical) direction (staggered dimension)
@@ -452,7 +489,7 @@ smooth_option                       = 0
 ...
 ```
 
-#### Physics scheme options
+#### 7.3 Physics scheme options
 - In WRF, many **physical parameterization schemes** are available to represent processes that cannot be explicitly resolved by the governing equations (e.g., radiation, cloud, land surface processes, and other subgrid-scale phenomena).
 
   More details in [WRF Physics](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html).
@@ -480,7 +517,7 @@ smooth_option                       = 0
  /
 ```
 
-#### Dynamics options
+#### 7.4 Dynamics options
 - WRF (WRF-ARW) model uses a dynamical solver to perform time and space integration of the equations of motion.
 
   More details in [WRF Dynamics](https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/dynamics.html).
@@ -525,7 +562,7 @@ smooth_option                       = 0
 
 ---
 
-### real.exe
+### 8. real.exe
 ```bash
 cd $WRF_DIR/run
 
@@ -538,7 +575,7 @@ ln -sf $WPS_DIR/met_em.d0* .
 ```
 - On failure, check `rsl.error.0000`.
 
-### wrf.exe
+### 9. wrf.exe
 - **Serial run**
   ```bash
   ./wrf.exe
@@ -557,7 +594,7 @@ ln -sf $WPS_DIR/met_em.d0* .
 
 ## Visualization
 
-### ncview
+### 10. ncview
 - Install
 ```bash
  sudo apt install ncview
@@ -589,6 +626,16 @@ ncview <netcdf-file>
 
 ![time validation of T](./fig/single-T.png)
 
+
+## Automated Execution with WRF_tools
+
+For automated execution, use `ERA5DataDownloader` and `WRFProcessor` from `WRF_tools`.
+See [WRF_tools User Guide](./wrf_tools_usage.md) for the Python workflow.
+
+- `ERA5DataDownloader`: downloads ERA5 GRIB files.
+- `WRFProcessor`: prepares `RUN_DIR` and runs `geogrid.exe`, `ungrib.exe`, `metgrid.exe`, `real.exe`, and `wrf.exe`.
+
+Set `ERA5DataDownloader(..., time_interval_hours=3)` for 3-hourly ERA5, or `time_interval_hours=1` for hourly ERA5. This should match `interval_seconds` in `namelist.wps`.
 
 
 

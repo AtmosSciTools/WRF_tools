@@ -12,13 +12,29 @@ import math
 import cdsapi
 
 class ERA5DataDownloader:
-    def __init__(self, run_period, domain_center, domain, download_dir):
+    def __init__(self, run_period, domain_center, domain, download_dir, time_interval_hours=6):
         self.run_period = run_period
         self.domain_center = domain_center
         self.domain = domain
         self.download_dir = download_dir
+        self.time_interval_hours = self._validate_time_interval(time_interval_hours)
+        self.times = self.get_request_times()
         os.makedirs(self.download_dir, exist_ok=True)
         self.client = cdsapi.Client()
+
+    def _validate_time_interval(self, time_interval_hours):
+        if not isinstance(time_interval_hours, int):
+            raise TypeError("time_interval_hours must be an integer.")
+        if time_interval_hours <= 0 or 24 % time_interval_hours != 0:
+            raise ValueError("time_interval_hours must be a positive divisor of 24.")
+        return time_interval_hours
+
+    def get_request_times(self):
+        """Return ERA5 request times as HH:MM strings."""
+        return [
+            f"{hour:02d}:00"
+            for hour in range(0, 24, self.time_interval_hours)
+        ]
 
     def get_rectangle_bounds(self):
         """Calculate the latitude and longitude bounds of a rectangle centered at the domain center."""
@@ -71,7 +87,7 @@ class ERA5DataDownloader:
                 'year': year,
                 'month': month,
                 'day': day,
-                'time': ['00:00', '06:00', '12:00', '18:00'],
+                'time': self.times,
                 'area': area,
             },
             pressure_file
@@ -99,7 +115,7 @@ class ERA5DataDownloader:
                 'year': year,
                 'month': month,
                 'day': day,
-                'time': ['00:00', '06:00', '12:00', '18:00'],
+                'time': self.times,
                 'area': area,
             },
             surface_file
@@ -111,13 +127,13 @@ class ERA5DataDownloader:
         area = [ bounds['north'], bounds['west'], bounds['south'], bounds['east']]
 
         print(f"Downloading data for area: {area}")
+        print(f"ERA5 request times: {', '.join(self.times)}")
 
         for date in self.generate_date_range():
             print(f"Downloading data for {date}...")
             self.download_pressure_level_data(date, area)
             self.download_surface_level_data(date, area)
             print(f"Completed data download for {date}.")
-
 
 if __name__ == "__main__":
     run_period = {
@@ -137,5 +153,5 @@ if __name__ == "__main__":
     }
 
     download_dir = f"/Volumes/work/WRF_program/era5/{domain_center['id']}/"
-    downloader = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
+    downloader = ERA5DataDownloader(run_period, domain_center, domain, download_dir, time_interval_hours=3)
     downloader.download_data()

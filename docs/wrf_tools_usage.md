@@ -55,6 +55,7 @@ export SIMULATION="/home/user/simulations"
 ### Usage
 - Prerequisites: install `cdsapi` and set a valid CDS API key in `~/.cdsapirc`.
 - Area calculation: the rectangle is centered at `domain_center` and sized from `domain['dx'] * domain['e_we_ini'][0]` (times 2 as buffer), converted to degrees considering latitude.
+- Time interval: set `time_interval_hours=3` for 00, 03, ..., 21 UTC, or `time_interval_hours=1` for hourly ERA5. Match this to `interval_seconds` in `namelist.wps`.
 - Files written: `era5_ungrib_pressure_levels_YYYYMMDD.grib`, `era5_ungrib_surface_levels_YYYYMMDD.grib` into `download_dir` (typically `paths['renaldir']`).
 
 ### Quick start example
@@ -89,7 +90,13 @@ paths = {
 download_dir = paths['renaldir']
 # download_dir = os.path.join(os.environ.get('REANAL'), "era5/"+domain_center['id']+'/')
 
-downloader = ERA5DataDownloader(run_period, domain_center, domain, download_dir)
+downloader = ERA5DataDownloader(
+    run_period,
+    domain_center,
+    domain,
+    download_dir,
+    time_interval_hours=3,
+)
 downloader.download_data()
 ```
 
@@ -268,6 +275,7 @@ simulation/Run_WRF/
 
 ### Key methods
 - `get_rectangle_bounds()`: returns dict with north/south/east/west bounds.
+- `get_request_times()`: returns ERA5 request times from `time_interval_hours`.
 - `generate_date_range()`: returns list of `YYYY-MM-DD` dates; if `end_date` has non-zero hour, includes the end day.
 - `download_pressure_level_data(date, area)`: writes one GRIB per day for mandatory pressure variables and levels.
 - `download_surface_level_data(date, area)`: writes one GRIB per day for surface/single-level variables.
@@ -276,9 +284,8 @@ simulation/Run_WRF/
 ### Notes and tips
 - CDS credentials: create `~/.cdsapirc` with your API key. Test with a small request first.
 - Area order for CDS `area` is `[north, west, south, east]` (handled internally). Bounds are rounded to 0.01°.
-- Time steps: requests 00, 06, 12, 18 UTC consistent with typical WPS ungrib use.
+- Time steps: requests are generated from `time_interval_hours`; for example, `3` gives 00, 03, ..., 21 UTC.
 - Extent heuristic: width uses `dx * e_we_ini[0] * 2` to add margin; adjust if coastal domains need more ocean coverage.
-- Resume downloads: files are saved per day; reruns will skip already completed transfers.
 
 ## Details of WRFProcessor
 
