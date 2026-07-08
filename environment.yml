@@ -16,7 +16,8 @@ dependencies:
   - pip
   - wrf-python
   - python-wget
+  - ninja
 
   - pip:
       - git+https://github.com/dniloash/Pywinter
-      - git+https://github.com/AtmosSciTools/WRF_tools.git@v1.1.1
+      - git+https://github.com/AtmosSciTools/WRF_tools.git
